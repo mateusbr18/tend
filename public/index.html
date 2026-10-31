@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tend</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f1117;--bg2:#1a1d27;--bg3:#242834;--fg:#e8e9ed;--fg2:#9ca3af;--accent:#7c6aef;--accent2:#a78bfa;--green:#34d399;--yellow:#fbbf24;--red:#f87171;--orange:#fb923c;--border:#2d3140;color-scheme:dark}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--fg);min-height:100vh}
+h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
+.container{max-width:480px;margin:0 auto;padding:16px;padding-bottom:100px}
+.hidden{display:none!important}
+.card{background:var(--bg2);border-radius:16px;padding:24px;margin-bottom:16px;border:1px solid var(--border)}
+.card h2{font-size:1.3rem;margin-bottom:12px}
+.card h3{font-size:1.1rem;margin-bottom:8px}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:12px 24px;border-radius:12px;border:none;font-size:1rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit}
+.btn-primary{background:var(--accent);color:#fff;width:100%}
+.btn-primary:hover{background:var(--accent2)}
+.btn-secondary{background:var(--bg3);color:var(--fg);width:100%}
+.btn-secondary:hover{background:var(--border)}
+.input-group{margin-bottom:16px}
+.input-group label{display:block;font-size:.85rem;color:var(--fg2);margin-bottom:6px;font-weight:500}
+.input-group input,.input-group select{width:100%;padding:12px 16px;border-radius:12px;border:1px solid var(--border);background:var(--bg3);color:var(--fg);font-size:1rem;font-family:inherit;outline:none}
+.input-group input:focus{border-color:var(--accent)}
+.nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:8px 0 max(8px,env(safe-area-inset-bottom,0));z-index:100}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 12px;color:var(--fg2);font-size:.7rem;font-weight:500;cursor:pointer;border:none;background:none;font-family:inherit;transition:color .2s}
+.nav-item.active{color:var(--accent)}
+.nav-item svg{width:22px;height:22px}
+.login-header{text-align:center;margin-bottom:32px;margin-top:40px}
+.login-header h1{font-size:2rem;margin-bottom:8px}
+.login-header p{color:var(--fg2)}
+.error-msg{background:rgba(248,113,113,.15);color:var(--red);padding:12px 16px;border-radius:10px;margin-bottom:16px;font-size:.9rem}
+.link-btn{background:none;border:none;color:var(--accent);font-size:.9rem;cursor:pointer;font-family:inherit;padding:8px 0}
+.progress-bar{height:4px;background:var(--bg3);border-radius:4px;margin-bottom:24px}
+.progress-fill{height:100%;background:var(--accent);border-radius:4px;transition:width .3s}
+.question-num{font-size:.85rem;color:var(--fg2);margin-bottom:8px}
+.question-text{font-size:1.15rem;line-height:1.5;margin-bottom:24px;font-weight:500}
+.scale-row{display:flex;gap:8px;margin-bottom:12px}
+.scale-btn{flex:1;aspect-ratio:1;border-radius:12px;border:2px solid var(--border);background:var(--bg3);color:var(--fg);font-size:1.2rem;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center}
+.scale-btn.selected{border-color:var(--accent);background:var(--accent);color:#fff}
+.scale-labels{display:flex;justify-content:space-between;font-size:.75rem;color:var(--fg2);margin-bottom:24px}
+.result-item{display:flex;justify-content:space-between;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--border)}
+.result-item:last-child{border-bottom:none}
+.result-valor{font-weight:600;font-size:.95rem}
+.result-score{font-weight:700;font-size:1.1rem;min-width:36px;text-align:right}
+.result-msg{font-size:.85rem;color:var(--fg2);margin-top:4px;line-height:1.4}
+.score-high{color:var(--green)}.score-mid{color:var(--yellow)}.score-low{color:var(--red)}
+.tabs{display:flex;gap:4px;margin-bottom:20px;overflow-x:auto}
+.tab{padding:8px 16px;border-radius:8px;background:var(--bg3);border:none;color:var(--fg2);font-size:.85rem;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit;transition:all .2s}
+.tab.active{background:var(--accent);color:#fff}
+.hm-grid{overflow-x:auto;margin-top:12px}
+.hm-table{width:100%;border-collapse:separate;border-spacing:3px}
+.hm-table th{font-size:.7rem;color:var(--fg2);font-weight:500;padding:4px 6px;text-align:center;white-space:nowrap}
+.hm-table td{text-align:center;padding:6px 4px;border-radius:6px;font-size:.85rem;font-weight:600;min-width:40px}
+.hm-valor{text-align:left!important;font-size:.75rem;font-weight:500;color:var(--fg);white-space:nowrap;padding-right:8px!important}
+.hm-null{background:var(--bg3);color:var(--fg2);font-size:.7rem}
+.hm-avg{font-weight:700}
+.grow-section{margin-bottom:20px}
+.grow-section-title{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;padding:6px 12px;border-radius:6px}
+.grow-gap{background:rgba(248,113,113,.15);color:var(--red)}
+.grow-watch{background:rgba(251,191,36,.15);color:var(--yellow)}
+.grow-ok{background:rgba(52,211,153,.15);color:var(--green)}
+.grow-item{padding:14px 0;border-bottom:1px solid var(--border)}
+.grow-item:last-child{border-bottom:none}
+.grow-valor-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.grow-valor-name{font-weight:600}
+.grow-valor-score{font-weight:700;font-size:.9rem}
+.grow-msg{font-size:.85rem;color:var(--fg2);line-height:1.4;margin-bottom:6px}
+.grow-action{font-size:.85rem;color:var(--accent2)}
+.trend-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.trend-item:last-child{border-bottom:none}
+.avatar{width:72px;height:72px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:700;color:#fff;margin:0 auto 16px}
+.profile-name{text-align:center;font-size:1.4rem;margin-bottom:4px}
+.profile-meta{text-align:center;color:var(--fg2);font-size:.9rem;margin-bottom:24px}
+.history-item{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:.9rem}
+.empty-state{text-align:center;padding:32px 16px;color:var(--fg2)}
+.empty-state p{margin-bottom:8px}
+.empty-icon{font-size:2rem;margin-bottom:12px}
+.overview-card{padding:14px 0;border-bottom:1px solid var(--border)}
+.overview-card:last-child{border-bottom:none}
+.overview-row{display:flex;justify-content:space-between;align-items:center}
+.overview-name{font-weight:600;font-size:1rem}
+.overview-avg{font-weight:700;font-size:1.1rem}
+.overview-meta{font-size:.8rem;color:var(--fg2);margin-top:4px}
+.badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:600}
+.badge-ok{background:rgba(52,211,153,.15);color:var(--green)}
+.badge-warn{background:rgba(251,191,36,.15);color:var(--yellow)}
+.badge-gap{background:rgba(248,113,113,.15);color:var(--red)}
+.hm-1{background:#991b1b;color:#fecaca}.hm-2{background:#92400e;color:#fde68a}.hm-3{background:#854d0e;color:#fef9c3}.hm-4{background:#166534;color:#bbf7d0}.hm-5{background:#14532d;color:#86efac}
+.role-tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:600;background:var(--bg3);color:var(--accent);margin-bottom:4px}
+/* MANAGE */
+.manage-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.manage-header h3{margin:0}
+.btn-sm{padding:8px 16px;border-radius:10px;font-size:.85rem;font-weight:600;border:none;cursor:pointer;font-family:inherit;transition:all .2s}
+.btn-add{background:var(--accent);color:#fff}.btn-add:hover{background:var(--accent2)}
+.btn-edit{background:var(--bg3);color:var(--fg);font-size:.8rem;padding:6px 12px}.btn-edit:hover{background:var(--border)}
+.btn-danger{background:rgba(248,113,113,.15);color:var(--red);font-size:.8rem;padding:6px 12px}.btn-danger:hover{background:rgba(248,113,113,.25)}
+.member-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
+.member-row:last-child{border-bottom:none}
+.member-info{flex:1}
+.member-name{font-weight:600;font-size:.95rem}
+.member-meta{font-size:.8rem;color:var(--fg2);margin-top:2px}
+.member-actions{display:flex;gap:6px}
+.team-block{margin-bottom:20px}
+.team-block-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.team-block-name{font-weight:700;font-size:1rem}
+.team-block-meta{font-size:.8rem;color:var(--fg2)}
+.dept-block{margin-bottom:24px}
+.dept-block-header{margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--accent)}
+.dept-block-name{font-weight:700;font-size:1.1rem}
+.dept-block-meta{font-size:.8rem;color:var(--fg2);margin-top:2px}
+/* MODAL */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto}
+.modal h3{margin-bottom:16px}
+.modal-btns{display:flex;gap:8px;margin-top:16px}
+.modal-btns .btn{flex:1}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen" class="container">
+  <div class="login-header">
+    <h1>Tend</h1>
+    <p>Pulse Check — 10 values that shape your team</p>
+  </div>
+  <div class="card">
+    <h2>Sign In</h2>
+    <div id="loginError" class="error-msg hidden"></div>
+    <div class="input-group"><label>Username</label><input type="text" id="loginUser" placeholder="e.g. ana" autocomplete="username" autocapitalize="none"></div>
+    <div class="input-group"><label>Password</label><input type="password" id="loginPwd" placeholder="••••" autocomplete="current-password"></div>
+    <button class="btn btn-primary" onclick="doLogin()">Sign In</button>
+    <div style="text-align:center;margin-top:16px"><button class="link-btn" onclick="showRegister()">Don't have an account? Register</button></div>
+  </div>
+</div>
+
+<!-- REGISTER -->
+<div id="registerScreen" class="container hidden">
+  <div class="login-header"><h1>Create Account</h1><p>Join your team's pulse check</p></div>
+  <div class="card">
+    <div id="regError" class="error-msg hidden"></div>
+    <div class="input-group"><label>Full Name</label><input type="text" id="regName" placeholder="Your full name"></div>
+    <div class="input-group"><label>Username</label><input type="text" id="regUsername" placeholder="Choose a username" autocapitalize="none"></div>
+    <div class="input-group"><label>Password</label><input type="password" id="regPwd" placeholder="At least 4 characters"></div>
+    <div class="input-group"><label>Role</label>
+      <select id="regRole"><option value="member">Team Member</option><option value="leader">Team Leader</option></select>
+    </div>
+    <button class="btn btn-primary" onclick="doRegister()">Create Account</button>
+    <div style="text-align:center;margin-top:16px"><button class="link-btn" onclick="showLogin()">Already have an account? Sign in</button></div>
+  </div>
+</div>
+
+<!-- HOME -->
+<div id="homeScreen" class="container hidden">
+  <div style="margin-bottom:24px">
+    <h1 style="font-size:1.5rem" id="homeGreeting">Hello</h1>
+    <p style="color:var(--fg2);font-size:.9rem" id="homeSub"></p>
+    <p style="color:var(--fg2);font-size:.8rem" id="homeCycle"></p>
+  </div>
+  <div class="card" id="homeStatusCard"><div id="homeStatus"></div></div>
+  <div class="card">
+    <h3>How it works</h3>
+    <p style="color:var(--fg2);font-size:.9rem;line-height:1.5;margin-top:8px">
+      Every month, team members answer 10 questions about how they experience work.
+      Responses flow upward: the leader sees the team, the department head sees all teams, and the company sees all departments.
+      Each level reveals patterns the one below can't see.
+    </p>
+  </div>
+</div>
+
+<!-- PULSE -->
+<div id="pulseScreen" class="container hidden">
+  <h2 style="font-size:1.3rem;margin-bottom:16px">Pulse Check</h2>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  <div id="pulseQuestion">
+    <div class="question-num" id="qNum"></div>
+    <div class="question-text" id="qText"></div>
+    <div class="scale-row" id="scaleRow"></div>
+    <div class="scale-labels"><span>Not at all</span><span>Completely</span></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-secondary" id="btnPrev" onclick="prevQ()" style="flex:1">Back</button>
+      <button class="btn btn-primary" id="btnNext" onclick="nextQ()" style="flex:1">Next</button>
+    </div>
+  </div>
+</div>
+
+<!-- RADAR -->
+<div id="radarScreen" class="container hidden">
+  <h2 style="font-size:1.3rem;margin-bottom:16px">Your Radar</h2>
+  <div id="radarContent"></div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboardScreen" class="container hidden">
+  <h2 style="font-size:1.3rem;margin-bottom:4px" id="dashTitle">Dashboard</h2>
+  <p style="color:var(--fg2);font-size:.85rem;margin-bottom:16px" id="dashSubtitle"></p>
+  <div class="tabs" id="dashTabs"></div>
+  <div id="dashContent"></div>
+</div>
+
+<!-- PROFILE -->
+<div id="profileScreen" class="container hidden">
+  <h2 style="font-size:1.3rem;margin-bottom:16px">Profile</h2>
+  <div id="profileContent"></div>
+</div>
+
+<!-- MANAGE -->
+<div id="manageScreen" class="container hidden">
+  <h2 style="font-size:1.3rem;margin-bottom:16px">Manage</h2>
+  <div id="manageContent"></div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay hidden" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modalBox"></div>
+</div>
+
+<!-- NAV -->
+<div class="nav hidden" id="mainNav">
+  <button class="nav-item" data-screen="home" onclick="navigate('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Home
+  </button>
+  <button class="nav-item" data-screen="pulse" id="navPulse" onclick="navigate('pulse')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Check-in
+  </button>
+  <button class="nav-item" data-screen="radar" id="navRadar" onclick="navigate('radar')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>Radar
+  </button>
+  <button class="nav-item" data-screen="dashboard" id="navDash" onclick="navigate('dashboard')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>Dashboard
+  </button>
+  <button class="nav-item" data-screen="manage" id="navManage" onclick="navigate('manage')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4.354a4 4 0 1 1 0 7.292"/><path d="M15 21H3v-1a6 6 0 0 1 12 0v1z"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-1a4 4 0 0 0-3-3.87"/></svg>Manage
+  </button>
+  <button class="nav-item" data-screen="profile" onclick="navigate('profile')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile
+  </button>
+</div>
+
+<script>
+let U = null, cycle = null, valores = [], pulseAnswers = [], currentQ = 0, dashTab = 'overview';
+const API = '';
+
+function navigate(s) {
+  document.querySelectorAll('.container').forEach(c => c.classList.add('hidden'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const el = document.getElementById(s + 'Screen');
+  if (el) el.classList.remove('hidden');
+  const nav = document.querySelector('.nav-item[data-screen="'+s+'"]');
+  if (nav) nav.classList.add('active');
+  if (s==='home') loadHome();
+  if (s==='pulse') loadPulse();
+  if (s==='radar') loadRadar();
+  if (s==='dashboard') loadDashboard();
+  if (s==='profile') loadProfile();
+  if (s==='manage') loadManage();
+}
+
+function showLogin(){document.getElementById('registerScreen').classList.add('hidden');document.getElementById('loginScreen').classList.remove('hidden');document.getElementById('loginError').classList.add('hidden')}
+function showRegister(){document.getElementById('loginScreen').classList.add('hidden');document.getElementById('registerScreen').classList.remove('hidden');document.getElementById('regError').classList.add('hidden')}
+function showError(id,msg){const e=document.getElementById(id);e.textContent=msg;e.classList.remove('hidden')}
+
+async function doLogin(){
+  const username=document.getElementById('loginUser').value.trim(),password=document.getElementById('loginPwd').value;
+  if(!username||!password){showError('loginError','Please enter username and password.');return}
+  try{
+    const res=await fetch(API+'/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+    const data=await res.json();
+    if(!res.ok){showError('loginError',data.error||'Login failed');return}
+    U=data;enterApp();
+  }catch(e){showError('loginError','Connection error. Is the server running?')}
+}
+
+async function doRegister(){
+  const name=document.getElementById('regName').value.trim(),username=document.getElementById('regUsername').value.trim(),
+        password=document.getElementById('regPwd').value,role=document.getElementById('regRole').value;
+  if(!name||!username||!password){showError('regError','All fields are required.');return}
+  try{
+    const res=await fetch(API+'/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,username,password,role,team_id:1})});
+    const data=await res.json();
+    if(!res.ok){showError('regError',data.error||'Registration failed');return}
+    U=data;U.team_name='Contracts';U.department_name='Corporate Legal';U.company_name='Nexus Corp';U.department_id=1;U.company_id=1;
+    enterApp();
+  }catch(e){showError('regError','Connection error.')}
+}
+
+async function enterApp(){
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('registerScreen').classList.add('hidden');
+  document.getElementById('mainNav').classList.remove('hidden');
+  // Nav visibility by role
+  const hasPulse = U.role==='member'||U.role==='leader';
+  document.getElementById('navPulse').style.display = hasPulse?'':'none';
+  document.getElementById('navRadar').style.display = hasPulse?'':'none';
+  document.getElementById('navDash').style.display = (U.role!=='member')?'':'none';
+  document.getElementById('navManage').style.display = (U.role!=='member')?'':'none';
+  // Load data
+  const [vRes,cRes]=await Promise.all([fetch(API+'/api/valores'),fetch(API+'/api/cycles/active/'+U.company_id)]);
+  valores=await vRes.json(); cycle=await cRes.json();
+  dashTab='overview';
+  navigate('home');
+}
+
+function logout(){
+  U=null;cycle=null;valores=[];
+  document.getElementById('mainNav').classList.add('hidden');
+  document.querySelectorAll('.container').forEach(c=>c.classList.add('hidden'));
+  document.getElementById('loginUser').value='';document.getElementById('loginPwd').value='';
+  showLogin();
+}
+
+// ── HOME ───────────────────────────
+async function loadHome(){
+  const first=U.name.split(' ')[0];
+  document.getElementById('homeGreeting').textContent='Hello, '+first;
+  // Subtitle based on role
+  const roleLbl={member:'Team Member',leader:'Team Leader',head:'Department Head',company:'Company'}[U.role];
+  let sub = roleLbl;
+  if(U.team_name) sub += ' · '+U.team_name;
+  if(U.department_name) sub += ' · '+U.department_name;
+  if(U.company_name) sub += ' · '+U.company_name;
+  document.getElementById('homeSub').textContent = sub;
+  document.getElementById('homeCycle').textContent = cycle?cycle.label:'';
+
+  const st = document.getElementById('homeStatus');
+  if(U.role==='member'||U.role==='leader'){
+    if(!cycle){st.innerHTML='<p style="color:var(--fg2)">No active cycle.</p>';return}
+    const res=await fetch(API+'/api/pulse/status/'+U.id+'/'+cycle.id);
+    const s=await res.json();
+    if(s.answered){
+      st.innerHTML='<div style="display:flex;align-items:center;gap:12px"><div style="font-size:1.5rem">✓</div><div><div style="font-weight:600">Check-in complete</div><div style="color:var(--fg2);font-size:.85rem">All 10 questions answered this cycle.</div></div></div>';
+    } else {
+      st.innerHTML='<div style="display:flex;align-items:center;gap:12px"><div style="font-size:1.5rem">📋</div><div><div style="font-weight:600">Check-in available</div><div style="color:var(--fg2);font-size:.85rem">10 quick questions · about 3 minutes</div></div></div><button class="btn btn-primary" style="margin-top:16px" onclick="navigate(\'pulse\')">Start Check-in</button>';
+    }
+  } else if(U.role==='head'){
+    st.innerHTML='<div style="display:flex;align-items:center;gap:12px"><div style="font-size:1.5rem">📊</div><div><div style="font-weight:600">Department Dashboard</div><div style="color:var(--fg2);font-size:.85rem">View pulse data across all teams in '+U.department_name+'.</div></div></div><button class="btn btn-primary" style="margin-top:16px" onclick="navigate(\'dashboard\')">Open Dashboard</button>';
+  } else {
+    st.innerHTML='<div style="display:flex;align-items:center;gap:12px"><div style="font-size:1.5rem">🏢</div><div><div style="font-weight:600">Company Dashboard</div><div style="color:var(--fg2);font-size:.85rem">View pulse data across all departments in '+U.company_name+'.</div></div></div><button class="btn btn-primary" style="margin-top:16px" onclick="navigate(\'dashboard\')">Open Dashboard</button>';
+  }
+}
+
+// ── PULSE ──────────────────────────
+function loadPulse(){if(!cycle||!valores.length)return;pulseAnswers=valores.map(v=>({valor_id:v.id,score:null}));currentQ=0;renderQ()}
+function renderQ(){
+  const v=valores[currentQ];
+  document.getElementById('progressFill').style.width=(currentQ/valores.length*100)+'%';
+  document.getElementById('qNum').textContent='Question '+(currentQ+1)+' of '+valores.length+' — '+v.name_en;
+  document.getElementById('qText').textContent=v.question_en;
+  const row=document.getElementById('scaleRow');row.innerHTML='';
+  for(let i=1;i<=5;i++){const b=document.createElement('button');b.className='scale-btn'+(pulseAnswers[currentQ].score===i?' selected':'');b.textContent=i;b.onclick=()=>selScore(i);row.appendChild(b)}
+  document.getElementById('btnPrev').style.visibility=currentQ===0?'hidden':'visible';
+  document.getElementById('btnNext').textContent=currentQ===valores.length-1?'Submit':'Next';
+}
+function selScore(s){pulseAnswers[currentQ].score=s;document.querySelectorAll('.scale-btn').forEach((b,i)=>b.classList.toggle('selected',i+1===s))}
+function prevQ(){if(currentQ>0){currentQ--;renderQ()}}
+async function nextQ(){
+  if(pulseAnswers[currentQ].score===null)return;
+  if(currentQ<valores.length-1){currentQ++;renderQ()}
+  else{await fetch(API+'/api/pulse',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:U.id,cycle_id:cycle.id,answers:pulseAnswers})});navigate('radar')}
+}
+
+// ── RADAR ──────────────────────────
+async function loadRadar(){
+  const el=document.getElementById('radarContent');
+  if(!cycle){el.innerHTML='<div class="empty-state"><div class="empty-icon">📡</div><p>No active cycle.</p></div>';return}
+  const res=await fetch(API+'/api/radar/'+U.id+'/'+cycle.id);const data=await res.json();
+  if(!data.some(d=>d.score!==null)){el.innerHTML='<div class="empty-state"><div class="empty-icon">📡</div><p>No data yet.</p><p style="font-size:.85rem">Complete your check-in first.</p></div>';return}
+  const sz=300,cx=150,cy=150,mR=120,n=data.length;
+  const pts=data.map((d,i)=>{const a=Math.PI*2*i/n-Math.PI/2;const r=(d.score||0)/5*mR;return{x:cx+r*Math.cos(a),y:cy+r*Math.sin(a),a}});
+  let svg='<svg class="radar-svg" viewBox="0 0 300 300" width="300" height="300" style="display:block;margin:0 auto 24px">';
+  for(let l=1;l<=5;l++)svg+='<circle cx="150" cy="150" r="'+(l/5*mR)+'" fill="none" stroke="var(--border)" stroke-width="1"/>';
+  data.forEach((d,i)=>{const a=Math.PI*2*i/n-Math.PI/2;const lx=cx+(mR+24)*Math.cos(a),ly=cy+(mR+24)*Math.sin(a);
+    svg+='<line x1="150" y1="150" x2="'+(cx+mR*Math.cos(a))+'" y2="'+(cy+mR*Math.sin(a))+'" stroke="var(--border)" stroke-width="0.5"/>';
+    const lb=d.name_en.length>8?d.name_en.slice(0,7)+'.':d.name_en;
+    svg+='<text x="'+lx+'" y="'+ly+'" fill="var(--fg2)" font-size="8" text-anchor="middle" dominant-baseline="middle" font-family="DM Sans">'+lb+'</text>'});
+  svg+='<polygon points="'+pts.map(p=>p.x+','+p.y).join(' ')+'" fill="rgba(124,106,239,.2)" stroke="var(--accent)" stroke-width="2"/>';
+  pts.forEach(p=>svg+='<circle cx="'+p.x+'" cy="'+p.y+'" r="4" fill="var(--accent)"/>');svg+='</svg>';
+  let list='';data.forEach(d=>{if(d.score===null)return;const c=d.score<=2?'score-low':d.score<=3?'score-mid':'score-high';
+    let msg=d.score<=2?'<div class="result-msg">'+d.msg_gap_en+'</div>':'';
+    list+='<div class="result-item"><div><div class="result-valor">'+d.name_en+'</div>'+msg+'</div><div class="result-score '+c+'">'+d.score+'</div></div>'});
+  el.innerHTML='<div class="card">'+svg+'</div><div class="card">'+list+'</div>';
+}
+
+// ── DASHBOARD ─────────────────────
+async function loadDashboard(){
+  const dt=document.getElementById('dashTitle'),ds=document.getElementById('dashSubtitle');
+  if(U.role==='leader'){dt.textContent='Team Dashboard';ds.textContent=U.team_name+' · '+U.department_name}
+  else if(U.role==='head'){dt.textContent='Department Dashboard';ds.textContent=U.department_name+' · '+U.company_name}
+  else{dt.textContent='Company Dashboard';ds.textContent=U.company_name}
+
+  const tabs=[{id:'overview',label:'Overview'},{id:'heatmap',label:'Heat Map'},{id:'grow',label:'Grow Plan'},{id:'trend',label:'Trend'}];
+  document.getElementById('dashTabs').innerHTML=tabs.map(t=>'<button class="tab '+(dashTab===t.id?'active':'')+'" onclick="switchDash(\''+t.id+'\')">'+t.label+'</button>').join('');
+
+  if(dashTab==='overview') await renderOverview();
+  else if(dashTab==='heatmap') await renderHeatMap();
+  else if(dashTab==='grow') await renderGrow();
+  else if(dashTab==='trend') await renderTrend();
+}
+function switchDash(t){dashTab=t;loadDashboard()}
+
+// ── OVERVIEW ──────────────────────
+async function renderOverview(){
+  const el=document.getElementById('dashContent');
+  if(!cycle){el.innerHTML='<div class="card"><div class="empty-state"><p>No active cycle.</p></div></div>';return}
+
+  if(U.role==='leader'){
+    // Show team members and their status
+    const res=await fetch(API+'/api/teams/'+U.team_id+'/users');
+    const users=await res.json();
+    const members=users.filter(u=>u.role==='member');
+    let html='<div class="card"><h3>Team Members</h3>';
+    for(const m of members){
+      const sr=await fetch(API+'/api/pulse/status/'+m.id+'/'+cycle.id);
+      const s=await sr.json();
+      const badge=s.answered?'<span class="badge badge-ok">✓ Done</span>':'<span class="badge" style="background:var(--bg3);color:var(--fg2)">Pending</span>';
+      html+='<div class="overview-card"><div class="overview-row"><div class="overview-name">'+m.name+'</div>'+badge+'</div></div>';
+    }
+    html+='</div>';el.innerHTML=html;
+
+  } else if(U.role==='head'){
+    const res=await fetch(API+'/api/overview/department/'+U.department_id+'/'+cycle.id);
+    const data=await res.json();
+    let html='<div class="card"><h3>Teams in '+U.department_name+'</h3>';
+    if(data.length===0){html+='<div class="empty-state"><p>No teams found.</p></div>'}
+    data.forEach(t=>{
+      const avgCls=t.avg===null?'':t.avg<=2.5?'score-low':t.avg<=3.5?'score-mid':'score-high';
+      const pct=t.members>0?Math.round(t.answered/t.members*100):0;
+      html+='<div class="overview-card"><div class="overview-row"><div><div class="overview-name">'+t.name+'</div><div class="overview-meta">'+(t.leader||'No leader')+' · '+t.members+' members · '+pct+'% responded</div></div>'
+        +'<div class="overview-avg '+avgCls+'">'+(t.avg!==null?t.avg:'—')+'</div></div></div>';
+    });
+    html+='</div>';el.innerHTML=html;
+
+  } else {
+    const res=await fetch(API+'/api/overview/company/'+U.company_id+'/'+cycle.id);
+    const data=await res.json();
+    let html='<div class="card"><h3>Departments in '+U.company_name+'</h3>';
+    data.forEach(d=>{
+      const avgCls=d.avg===null?'':d.avg<=2.5?'score-low':d.avg<=3.5?'score-mid':'score-high';
+      const pct=d.members>0?Math.round(d.answered/d.members*100):0;
+      html+='<div class="overview-card"><div class="overview-row"><div><div class="overview-name">'+d.name+'</div><div class="overview-meta">'+(d.head||'No head')+' · '+d.teams+' teams · '+d.members+' members · '+pct+'% responded</div></div>'
+        +'<div class="overview-avg '+avgCls+'">'+(d.avg!==null?d.avg:'—')+'</div></div></div>';
+    });
+    html+='</div>';el.innerHTML=html;
+  }
+}
+
+// ── HEATMAP ───────────────────────
+function hmColorClass(v){if(v===null||v===undefined)return'hm-null';const n=typeof v==='number'?v:parseFloat(v);if(isNaN(n))return'hm-null';if(n<=1.5)return'hm-1';if(n<=2.5)return'hm-2';if(n<=3.5)return'hm-3';if(n<=4.5)return'hm-4';return'hm-5'}
+function hmCell(v){if(v===null||v===undefined)return'<td class="hm-null">—</td>';return'<td class="'+hmColorClass(v)+'">'+v+'</td>'}
+
+async function renderHeatMap(){
+  const el=document.getElementById('dashContent');
+  if(!cycle){el.innerHTML='<div class="card"><div class="empty-state"><div class="empty-icon">🗺️</div><p>No active cycle.</p></div></div>';return}
+
+  let url;
+  if(U.role==='leader') url='/api/heatmap/team/'+U.team_id+'/'+cycle.id;
+  else if(U.role==='head') url='/api/heatmap/department/'+U.department_id+'/'+cycle.id;
+  else url='/api/heatmap/company/'+U.company_id+'/'+cycle.id;
+
+  const res=await fetch(API+url);const data=await res.json();
+  const{columns,grid}=data;
+  const hasData=grid.some(r=>Object.values(r.scores).some(s=>s!==null));
+  if(!hasData){el.innerHTML='<div class="card"><div class="empty-state"><div class="empty-icon">🗺️</div><p>No responses yet.</p><p style="font-size:.85rem">The heat map appears once members complete their check-in.</p></div></div>';return}
+
+  const colLabel=U.role==='leader'?'Members':U.role==='head'?'Teams':'Departments';
+  let html='<div class="card"><h3>Heat Map · '+colLabel+'</h3><div class="hm-grid"><table class="hm-table"><thead><tr><th></th>';
+  columns.forEach(c=>{const nm=c.name.length>10?c.name.slice(0,9)+'.':c.name;html+='<th>'+nm+'</th>'});
+  html+='<th>Avg</th></tr></thead><tbody>';
+  grid.forEach(row=>{
+    html+='<tr><td class="hm-valor">'+row.valor+'</td>';
+    columns.forEach(c=>{const s=row.scores[String(c.id)];html+=hmCell(s)});
+    if(row.avg!==null){const cls=hmColorClass(row.avg);html+='<td class="'+cls+' hm-avg">'+row.avg+'</td>'}else html+='<td class="hm-null">—</td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div></div>';
+  if(data.gaps&&data.gaps.length>0) html+='<div class="card"><h3>⚠️ Attention Areas</h3><p style="color:var(--fg2);font-size:.9rem;margin-top:8px">Averages at or below 2.5: <strong>'+data.gaps.join(', ')+'</strong></p></div>';
+  el.innerHTML=html;
+}
+
+// ── GROW PLAN ─────────────────────
+async function renderGrow(){
+  const el=document.getElementById('dashContent');
+  if(!cycle){el.innerHTML='<div class="card"><div class="empty-state"><p>No active cycle.</p></div></div>';return}
+
+  let url;
+  if(U.role==='leader') url='/api/grow/team/'+U.team_id+'/'+cycle.id;
+  else if(U.role==='head') url='/api/grow/department/'+U.department_id+'/'+cycle.id;
+  else url='/api/grow/company/'+U.company_id+'/'+cycle.id;
+
+  const res=await fetch(API+url);const data=await res.json();
+  if(!data.length){el.innerHTML='<div class="card"><div class="empty-state"><div class="empty-icon">🌱</div><p>No data yet.</p></div></div>';return}
+
+  const gaps=data.filter(d=>d.avg_score<=2.5),watch=data.filter(d=>d.avg_score>2.5&&d.avg_score<=3.5),ok=data.filter(d=>d.avg_score>3.5);
+  function sec(items,cls,title){
+    if(!items.length)return'';
+    let h='<div class="grow-section"><div class="grow-section-title '+cls+'">'+title+'</div>';
+    items.forEach(d=>{const avg=Math.round(d.avg_score*10)/10;const sc=avg<=2.5?'score-low':avg<=3.5?'score-mid':'score-high';
+      h+='<div class="grow-item"><div class="grow-valor-row"><span class="grow-valor-name">'+d.name_en+'</span><span class="grow-valor-score '+sc+'">'+avg+'</span></div><div class="grow-msg">'+d.msg_gap_en+'</div><div class="grow-action">→ '+d.grow_action_en+'</div></div>'});
+    return h+'</div>';
+  }
+  let html='<div class="card"><h3>Grow Plan</h3>';
+  html+=sec(gaps,'grow-gap','🔴 Gap — needs action');
+  html+=sec(watch,'grow-watch','🟡 Watch — monitor closely');
+  html+=sec(ok,'grow-ok','🟢 Healthy — keep going');
+  html+='</div>';el.innerHTML=html;
+}
+
+// ── TREND ─────────────────────────
+async function renderTrend(){
+  const el=document.getElementById('dashContent');
+  // Only team-level trend for now (needs 2 cycles)
+  if(U.role!=='leader'){el.innerHTML='<div class="card"><div class="empty-state"><div class="empty-icon">📈</div><p>Trend analysis requires at least two completed cycles.</p><p style="font-size:.85rem">Available at team level after the second monthly pulse.</p></div></div>';return}
+  const res=await fetch(API+'/api/trend/team/'+U.team_id);const data=await res.json();
+  if(!data.hasTrend){el.innerHTML='<div class="card"><div class="empty-state"><div class="empty-icon">📈</div><p>Not enough data for trend analysis.</p><p style="font-size:.85rem">Trends appear after two completed cycles.</p></div></div>';return}
+  let html='<div class="card"><h3>Trend: '+data.previousCycle+' → '+data.currentCycle+'</h3>';
+  data.trend.forEach(t=>{const arrow=t.direction==='up'?'↑':t.direction==='down'?'↓':'→';const clr=t.direction==='up'?'var(--green)':t.direction==='down'?'var(--red)':'var(--fg2)';
+    html+='<div class="trend-item"><div><div style="font-weight:500">'+t.valor+'</div><div style="font-size:.8rem;color:var(--fg2)">'+(t.previous??'—')+' → '+t.current+'</div></div><div style="font-size:1.2rem;color:'+clr+'">'+arrow+'</div></div>'});
+  html+='</div>';el.innerHTML=html;
+}
+
+// ── PROFILE ───────────────────────
+async function loadProfile(){
+  const res=await fetch(API+'/api/users/'+U.id);const u=await res.json();
+  const initials=u.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const roleMap={member:'Team Member',leader:'Team Leader',head:'Department Head',company:'Company Executive'};
+  let context=roleMap[u.role]||u.role;
+  if(u.team_name)context+=' · '+u.team_name;
+  if(u.department_name)context+=' · '+u.department_name;
+  if(u.company_name)context+=' · '+u.company_name;
+
+  let html='<div class="card"><div class="avatar">'+initials+'</div><div class="profile-name">'+u.name+'</div><div class="profile-meta">@'+u.username+' · '+context+'</div></div>';
+
+  if(u.role==='member'||u.role==='leader'){
+    const hRes=await fetch(API+'/api/users/'+U.id+'/history');const history=await hRes.json();
+    html+='<div class="card"><h3>Check-in History</h3>';
+    if(!history.length||history.every(h=>h.answers_count===0)){html+='<p style="color:var(--fg2);font-size:.9rem;margin-top:8px">No check-ins completed yet.</p>'}
+    else{history.forEach(h=>{if(h.answers_count===0)return;html+='<div class="history-item"><span>'+h.label+'</span><span style="color:var(--fg2)">avg '+h.avg_score+' · min '+h.min_score+'</span></div>'})}
+    html+='</div>';
+  }
+  html+='<button class="btn btn-secondary" style="margin-top:8px" onclick="logout()">Sign Out</button>';
+  document.getElementById('profileContent').innerHTML=html;
+}
+
+// ── MANAGE ───────────────────────
+function closeModal(){document.getElementById('modalOverlay').classList.add('hidden')}
+function openModal(html){document.getElementById('modalBox').innerHTML=html;document.getElementById('modalOverlay').classList.remove('hidden')}
+
+async function loadManage(){
+  const el=document.getElementById('manageContent');
+  if(U.role==='leader') await loadManageLeader(el);
+  else if(U.role==='head') await loadManageHead(el);
+  else if(U.role==='company') await loadManageCompany(el);
+  else el.innerHTML='<div class="card"><p style="color:var(--fg2)">No management access.</p></div>';
+}
+
+// ── LEADER: manage team members ──
+async function loadManageLeader(el){
+  const res=await fetch(API+'/api/manage/team/'+U.team_id);
+  const users=await res.json();
+  let html='<div class="card"><div class="manage-header"><h3>'+U.team_name+'</h3><button class="btn-sm btn-add" onclick="showAddMember()">+ Add Member</button></div>';
+  if(!users.length){html+='<p style="color:var(--fg2)">No members yet.</p>'}
+  users.forEach(u=>{
+    const rLabel={member:'Member',leader:'Leader'}[u.role]||u.role;
+    const isSelf=u.id===U.id;
+    html+='<div class="member-row"><div class="member-info"><div class="member-name">'+u.name+(isSelf?' <span style="color:var(--fg2);font-size:.8rem">(you)</span>':'')+'</div><div class="member-meta">@'+u.username+' · '+rLabel+'</div></div>';
+    if(!isSelf&&u.role!=='leader'){html+='<div class="member-actions"><button class="btn-sm btn-edit" onclick="showEditUser('+u.id+',\''+u.name.replace(/'/g,"\\'")+'\',\''+u.username+'\',\''+u.role+'\')">Edit</button><button class="btn-sm btn-danger" onclick="confirmDelete('+u.id+',\''+u.name.replace(/'/g,"\\'")+'\')">Remove</button></div>'}
+    html+='</div>';
+  });
+  html+='</div>';el.innerHTML=html;
+}
+
+function showAddMember(){
+  openModal('<h3>Add Member</h3><div class="input-group"><label>Name</label><input id="mName" placeholder="Full name"></div><div class="input-group"><label>Username</label><input id="mUser" placeholder="username"></div><div class="input-group"><label>Password</label><input id="mPwd" type="password" value="1234"></div><div id="mError" class="error-msg hidden"></div><div class="modal-btns"><button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="doAddMember()">Add</button></div>');
+}
+
+async function doAddMember(){
+  const name=document.getElementById('mName').value.trim(),username=document.getElementById('mUser').value.trim(),password=document.getElementById('mPwd').value;
+  if(!name||!username){showError('mError','Name and username required.');return}
+  try{
+    const res=await fetch(API+'/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,username,password:password||'1234',role:'member',team_id:U.team_id})});
+    const data=await res.json();
+    if(!res.ok){showError('mError',data.error||'Failed');return}
+    closeModal();loadManage();
+  }catch(e){showError('mError','Connection error.')}
+}
+
+function showEditUser(id,name,username,role){
+  openModal('<h3>Edit User</h3><div class="input-group"><label>Name</label><input id="eName" value="'+name+'"></div><div class="input-group"><label>Username</label><input id="eUser" value="'+username+'"></div><div class="input-group"><label>New Password (leave empty to keep)</label><input id="ePwd" type="password" placeholder=""></div><div id="eError" class="error-msg hidden"></div><div class="modal-btns"><button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="doEditUser('+id+')">Save</button></div>');
+}
+
+async function doEditUser(id){
+  const name=document.getElementById('eName').value.trim(),username=document.getElementById('eUser').value.trim(),password=document.getElementById('ePwd').value;
+  if(!name||!username){showError('eError','Name and username required.');return}
+  const body={name,username};if(password)body.password=password;
+  try{
+    const res=await fetch(API+'/api/users/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await res.json();
+    if(!res.ok){showError('eError',data.error||'Failed');return}
+    closeModal();loadManage();
+  }catch(e){showError('eError','Connection error.')}
+}
+
+function confirmDelete(id,name){
+  openModal('<h3>Remove User</h3><p style="margin-bottom:8px">Remove <strong>'+name+'</strong> from the team?</p><p style="color:var(--fg2);font-size:.85rem">All their check-in history will also be deleted.</p><div class="modal-btns"><button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary" style="background:var(--red)" onclick="doDeleteUser('+id+')">Remove</button></div>');
+}
+
+async function doDeleteUser(id){
+  await fetch(API+'/api/users/'+id,{method:'DELETE'});
+  closeModal();loadManage();
+}
+
+// ── HEAD: manage department (teams + members) ──
+async function loadManageHead(el){
+  const res=await fetch(API+'/api/manage/department/'+U.department_id);
+  const data=await res.json();
+  let html='<div class="card"><div class="manage-header"><h3>'+U.department_name+'</h3><button class="btn-sm btn-add" onclick="showAddTeam()">+ New Team</button></div>';
+  if(!data.length){html+='<p style="color:var(--fg2)">No teams yet.</p>'}
+  data.forEach(t=>{
+    html+='<div class="team-block"><div class="team-block-header"><div><div class="team-block-name">'+t.team.name+'</div><div class="team-block-meta">'+t.members.length+' member'+(t.members.length!==1?'s':'')+'</div></div><div style="display:flex;gap:6px"><button class="btn-sm btn-add" onclick="showAddMemberToTeam('+t.team.id+',\''+t.team.name.replace(/'/g,"\\'")+'\')">+ Add</button>'+(t.members.length===0?'<button class="btn-sm btn-danger" onclick="confirmDeleteTeam('+t.team.id+',\''+t.team.name.replace(/'/g,"\\'")+'\')">Delete</button>':'')+'</div></div>';
+    t.members.forEach(u=>{
+      const rLabel={member:'Member',leader:'Leader'}[u.role]||u.role;
+      const isSelf=u.id===U.id;
+      html+='<div class="member-row"><div class="member-info"><div class="member-name">'+u.name+(isSelf?' <span style="color:var(--fg2);font-size:.8rem">(you)</span>':'')+'</div><div class="member-meta">@'+u.username+' · '+rLabel+'</div></div>';
+      if(!isSelf){html+='<div class="member-actions"><button class="btn-sm btn-edit" onclick="showEditUser('+u.id+',\''+u.name.replace(/'/g,"\\'")+'\',\''+u.username+'\',\''+u.role+'\')">Edit</button><button class="btn-sm btn-danger" onclick="confirmDelete('+u.id+',\''+u.name.replace(/'/g,"\\'")+'\')">Remove</button></div>'}
+      html+='</div>';
+    });
+    html+='</div>';
+  });
+  html+='</div>';el.innerHTML=html;
+}
+
+function showAddTeam(){
+  openModal('<h3>New Team</h3><div class="input-group"><label>Team Name</label><input id="tName" placeholder="e.g. Contracts"></div><div id="tError" class="error-msg hidden"></div><div class="modal-btns"><button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="doAddTeam()">Create</button></div>');
+}
+
+async function doAddTeam(){
+  const name=document.getElementById('tName').value.trim();
+  if(!name){showError('tError','Team name required.');return}
+  try{
+    const res=await fetch(API+'/api/teams',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,department_id:U.department_id})});
+    const data=await res.json();
+    if(!res.ok){showError('tError',data.error||'Failed');return}
+    closeModal();loadManage();
+  }catch(e){showError('tError','Connection error.')}
+}
+
+function showAddMemberToTeam(teamId,teamName){
+  openModal('<h3>Add Member to '+teamName+'</h3><div class="input-group"><label>Name</label><input id="mName" placeholder="Full name"></div><div class="input-group"><label>Username</label><input id="mUser" placeholder="username"></div><div class="input-group"><label>Password</label><input id="mPwd" type="password" value="1234"></div><div class="input-group"><label>Role</label><select id="mRole"><option value="member">Member</option><option value="leader">Leader</option></select></div><div id="mError" class="error-msg hidden"></div><div class="modal-btns"><button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="doAddMemberToTeam('+teamId+')">Add</button></div>');
+}
+
+async function doAddMemberToTeam(teamId){
+  const name=document.getElementById('mName').value.trim(),username=document.getElementById('mUser').value.trim(),password=document.getElementById('mPwd').value,role=document.getElementById('mRole').value;
+  if(!name||!username){showError('mError','Name and username required.');return}
+  try{
+    const res=await fetch(API+'/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,username,password:password||'1234',role,team_id:teamId})});
+    const data=await res.json();
+    if(!res.ok){showError('mError',data.error||'Failed');return}
+    closeModal();loadManage();
+  }catch(e){showError('mError','Connection error.')}
+}
+
+function confirmDeleteTeam(id,name){
+  openModal('<h3>Delete Team</h3><p>Delete team <strong>'+name+'</strong>?</p><p style="color:var(--fg2);font-size:.85rem;margin-top:8px">Team must be empty first.</p><div class="modal-btns"><button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary" style="background:var(--red)" onclick="doDeleteTeam('+id+')">Delete</button></div>');
+}
+
+async function doDeleteTeam(id){
+  const res=await fetch(API+'/api/teams/'+id,{method:'DELETE'});
+  const data=await res.json();
+  if(!res.ok){alert(data.error||'Cannot delete');return}
+  closeModal();loadManage();
+}
+
+// ── COMPANY: manage all departments, teams, users ──
+async function loadManageCompany(el){
+  const res=await fetch(API+'/api/manage/company/'+U.company_id);
+  const data=await res.json();
+  let html='<div class="card"><div class="manage-header"><h3>'+U.company_name+'</h3><button class="btn-sm btn-add" onclick="showAddDepartment()">+ New Department</button></div>';
+  if(!data.length){html+='<p style="color:var(--fg2)">No departments yet.</p>'}
+  data.forEach(d=>{
+    html+='<div class="dept-block"><div class="dept-block-header"><div class="dept-block-name">'+d.department.name+'</div><div class="dept-block-meta">'+(d.head?'Head: '+d.head.name:'No head assigned')+' · '+d.teams.length+' team'+(d.teams.length!==1?'s':'')+'</div></div>';
+    html+='<div style="margin-bottom:8px"><button class="btn-sm btn-add" onclick="showAddTeamToDept('+d.department.id+',\''+d.department.name.replace(/'/g,"\\'")+'\')">+ New Team</button></div>';
+    d.teams.forEach(t=>{
+      html+='<div class="team-block"><div class="team-block-header"><div><div class="team-block-name">'+t.team.name+'</div><div class="team-block-meta">'+t.members.length+' member'+(t.members.length!==1?'s':'')+'</div></div><div style="display:flex;gap:6px"><button class="btn-sm btn-add" onclick="showAddMemberToTeam('+t.team.id+',\''+t.team.name.replace(/'/g,"\\'")+'\')">+ Add</button>'+(t.members.length===0?'<button class="btn-sm btn-danger" onclick="confirmDeleteTeam('+t.team.id+',\''+t.team.name.replace(/'/g,"\\'")+'\')">Delete</button>':'')+'</div></div>';
+      t.members.forEach(u=>{
+        const rLabel={member:'Member',leader:'Leader'}[u.role]||u.role;
+        const isSelf=u.id===U.id;
+        html+='<div class="member-row"><div class="member-info"><div class="member-name">'+u.name+(isSelf?' <span style="color:var(--fg2);font-size:.8rem">(you)</span>':'')+'</div><div class="member-meta">@'+u.username+' · '+rLabel+'</div></div>';
+        if(!isSelf){html+='<div class="member-actions"><button class="btn-sm btn-edit" onclick="showEditUser('+u.id+',\''+u.name.replace(/'/g,"\\'")+'\',\''+u.username+'\',\''+u.role+'\')">Edit</button><button class="btn-sm btn-danger" onclick="confirmDelete('+u.id+',\''+u.name.replace(/'/g,"\\'")+'\')">Remove</button></div>'}
+        html+='</div>';
+      });
+      html+='</div>';
+    });
+    html+='</div>';
+  });
+  html+='</div>';el.innerHTML=html;
+}
+
+function showAddDepartment(){
+  openModal('<h3>New Department</h3><div class="input-group"><label>Department Name</label><input id="dName" placeholder="e.g. Marketing"></div><div id="dError" class="error-msg hidden"></div><div class="modal-btns"><button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="doAddDepartment()">Create</button></div>');
+}
+
+async function doAddDepartment(){
+  const name=document.getElementById('dName').value.trim();
+  if(!name){showError('dError','Department name required.');return}
+  try{
+    const res=await fetch(API+'/api/departments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,company_id:U.company_id})});
+    const data=await res.json();
+    if(!res.ok){showError('dError',data.error||'Failed');return}
+    closeModal();loadManage();
+  }catch(e){showError('dError','Connection error.')}
+}
+
+function showAddTeamToDept(deptId,deptName){
+  openModal('<h3>New Team in '+deptName+'</h3><div class="input-group"><label>Team Name</label><input id="tName" placeholder="e.g. Contracts"></div><div id="tError" class="error-msg hidden"></div><div class="modal-btns"><button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="doAddTeamToDept('+deptId+')">Create</button></div>');
+}
+
+async function doAddTeamToDept(deptId){
+  const name=document.getElementById('tName').value.trim();
+  if(!name){showError('tError','Team name required.');return}
+  try{
+    const res=await fetch(API+'/api/teams',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,department_id:deptId})});
+    const data=await res.json();
+    if(!res.ok){showError('tError',data.error||'Failed');return}
+    closeModal();loadManage();
+  }catch(e){showError('tError','Connection error.')}
+}
+
+document.getElementById('loginPwd').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+document.getElementById('loginUser').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('loginPwd').focus()});
+</script>
+</body>
+</html>
