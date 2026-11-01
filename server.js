@@ -280,6 +280,101 @@ if (cnt.c === 0) {
       ],
     };
 
+    // ══════════════════════════════════════════════
+    // ══ COMPANY 2 — Bridge XPI (real use case) ══
+    // ══════════════════════════════════════════════
+    db.prepare('INSERT INTO companies (id,name) VALUES (2,?)').run('Bridge XPI');
+
+    // Departments for Bridge XPI
+    idept.run(5,'Continuous Improvement',2);
+    idept.run(6,'Operations',2);
+
+    // Teams for Bridge XPI
+    iteam.run(10,'Agile',5);             // Continuous Improvement
+    iteam.run(11,'Lean Six Sigma',5);    // Continuous Improvement
+    iteam.run(12,'Business Operations',6); // Operations
+    iteam.run(13,'OPEX',6);              // Operations
+
+    // Bridge XPI — Company admin
+    iu.run('Admin Bridge','admin.bridge',pw,'company',null,null,2);
+
+    // Bridge XPI — Department heads
+    iu.run('Head CI','head.ci',pw,'head',null,5,null);        // Continuous Improvement
+    iu.run('Head Ops','head.ops',pw,'head',null,6,null);       // Operations
+
+    // Bridge XPI — Team leaders
+    iu.run('Mateus','mateus',pw,'leader',10,null,null);        // Agile
+    iu.run('Marco','marco',pw,'leader',11,null,null);          // Lean Six Sigma
+    iu.run('Aurélia','aurelia',pw,'leader',12,null,null);      // Business Operations
+    iu.run('Ateshan','ateshan',pw,'leader',13,null,null);      // OPEX
+
+    // Bridge XPI — Members
+    // Agile (team 10)
+    iu.run('Dana','dana',pw,'member',10,null,null);
+    // Lean Six Sigma (team 11)
+    iu.run('Marcos','marcos.bxpi',pw,'member',11,null,null);
+    iu.run('Rayah','rayah',pw,'member',11,null,null);
+    iu.run('Mohamed','mohamed',pw,'member',11,null,null);
+    iu.run('Jana','jana',pw,'member',11,null,null);
+    // Business Operations (team 12)
+    iu.run('Babu','babu',pw,'member',12,null,null);
+    iu.run('Lorraine','lorraine',pw,'member',12,null,null);
+    iu.run('Suzy','suzy',pw,'member',12,null,null);
+    // OPEX (team 13)
+    iu.run('Beatriz','beatriz',pw,'member',13,null,null);
+
+    // Bridge XPI — Cycles (same 6 months)
+    ic.run(2,'May 2026','2026-05-01','2026-05-31',0);
+    ic.run(2,'June 2026','2026-06-01','2026-06-30',0);
+    ic.run(2,'July 2026','2026-07-01','2026-07-31',0);
+    ic.run(2,'August 2026','2026-08-01','2026-08-31',0);
+    ic.run(2,'September 2026','2026-09-01','2026-09-30',0);
+    ic.run(2,'October 2026','2026-10-01','2026-10-31',1);
+
+    // Bridge XPI team profiles — neutral starting point (all 3s)
+    // These are blank-slate scores for real use — no dramatic stories
+    const teamProfilesBXPI = {
+      // Agile (team 10): small team, solid baseline
+      10: [
+        [3,3,3,3,3,3,3,3,3,3],
+        [3,3,3,3,3,3,3,3,3,3],
+        [3,3,3,3,3,3,3,3,3,3],
+        [3,3,3,3,3,3,3,3,3,3],
+        [3,3,3,3,3,3,3,3,3,3],
+        [3,3,3,3,3,3,3,3,3,3],
+      ],
+      // Lean Six Sigma (team 11): neutral
+      11: [
+        [3,3,3,3,3,3,3,3,3,3],
+        [3,3,3,3,3,3,3,3,3,3],
+        [3,3,3,3,3,3,3,3,3,3],
+        [3,3,3,3,3,3,3,3,3,3],
+        [3,3,3,3,3,3,3,3,3,3],
+        [3,3,3,3,3,3,3,3,3,3],
+      ],
+      // Business Operations (team 12): neutral
+      12: [
+        [3,3,3,3,3,3,3,3,3,3],
+        [3,3,3,3,3,3,3,3,3,3],
+        [3,3,3,3,3,3,3,3,3,3],
+        [3,3,3,3,3,3,3,3,3,3],
+        [3,3,3,3,3,3,3,3,3,3],
+        [3,3,3,3,3,3,3,3,3,3],
+      ],
+      // OPEX (team 13): neutral
+      13: [
+        [3,3,3,3,3,3,3,3,3,3],
+        [3,3,3,3,3,3,3,3,3,3],
+        [3,3,3,3,3,3,3,3,3,3],
+        [3,3,3,3,3,3,3,3,3,3],
+        [3,3,3,3,3,3,3,3,3,3],
+        [3,3,3,3,3,3,3,3,3,3],
+      ],
+    };
+
+    // Merge all team profiles
+    const allTeamProfiles = { ...teamProfiles, ...teamProfilesBXPI };
+
     // Map team_id → list of user IDs (members + leader)
     const teamUsers = {};
     const allUsers = db.prepare('SELECT id, team_id FROM users WHERE team_id IS NOT NULL').all();
@@ -294,10 +389,26 @@ if (cnt.c === 0) {
     const variation = [0, 1, -1, 0, 1, -1, 0, 0, 1, -1, 0, 1, -1, 0, 0];
     let vi = 0;
 
-    for (const [teamId, profiles] of Object.entries(teamProfiles)) {
+    // Get all cycles indexed by company_id
+    const allCycles = db.prepare('SELECT id, company_id, ROW_NUMBER() OVER (PARTITION BY company_id ORDER BY id) as cycle_idx FROM cycles').all();
+    const cyclesByCompany = {};
+    for (const c of allCycles) {
+      if (!cyclesByCompany[c.company_id]) cyclesByCompany[c.company_id] = [];
+      cyclesByCompany[c.company_id].push(c.id);
+    }
+
+    // Get team → company mapping
+    const teamCompany = {};
+    const tcRows = db.prepare('SELECT t.id as team_id, d.company_id FROM teams t JOIN departments d ON d.id=t.department_id').all();
+    for (const r of tcRows) teamCompany[r.team_id] = r.company_id;
+
+    for (const [teamId, profiles] of Object.entries(allTeamProfiles)) {
       const users = teamUsers[parseInt(teamId)] || [];
+      const companyId = teamCompany[parseInt(teamId)];
+      const companyCycles = cyclesByCompany[companyId] || [];
       for (let cycleIdx = 0; cycleIdx < 6; cycleIdx++) {
-        const cycleId = cycleIdx + 1; // cycles 1-6
+        const cycleId = companyCycles[cycleIdx];
+        if (!cycleId) continue;
         const baseScores = profiles[cycleIdx];
         const cycleMonth = ['2026-05','2026-06','2026-07','2026-08','2026-09','2026-10'][cycleIdx];
         for (const userId of users) {
