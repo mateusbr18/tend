@@ -509,16 +509,115 @@ async function renderGrow(){
 }
 
 // ── TREND ─────────────────────────
+const TREND_COLORS=['#7c5cfc','#38bdf8','#f472b6','#4ade80','#facc15','#fb923c','#a78bfa','#f87171','#34d399','#818cf8','#e879f9'];
+
 async function renderTrend(){
   const el=document.getElementById('dashContent');
-  // Only team-level trend for now (needs 2 cycles)
-  if(U.role!=='leader'){el.innerHTML='<div class="card"><div class="empty-state"><div class="empty-icon">📈</div><p>Trend analysis requires at least two completed cycles.</p><p style="font-size:.85rem">Available at team level after the second monthly pulse.</p></div></div>';return}
-  const res=await fetch(API+'/api/trend/team/'+U.team_id);const data=await res.json();
-  if(!data.hasTrend){el.innerHTML='<div class="card"><div class="empty-state"><div class="empty-icon">📈</div><p>Not enough data for trend analysis.</p><p style="font-size:.85rem">Trends appear after two completed cycles.</p></div></div>';return}
-  let html='<div class="card"><h3>Trend: '+data.previousCycle+' → '+data.currentCycle+'</h3>';
-  data.trend.forEach(t=>{const arrow=t.direction==='up'?'↑':t.direction==='down'?'↓':'→';const clr=t.direction==='up'?'var(--green)':t.direction==='down'?'var(--red)':'var(--fg2)';
-    html+='<div class="trend-item"><div><div style="font-weight:500">'+t.valor+'</div><div style="font-size:.8rem;color:var(--fg2)">'+(t.previous??'—')+' → '+t.current+'</div></div><div style="font-size:1.2rem;color:'+clr+'">'+arrow+'</div></div>'});
-  html+='</div>';el.innerHTML=html;
+  let url;
+  if(U.role==='member'||U.role==='leader') url=API+'/api/trend-timeline/team/'+U.team_id;
+  else if(U.role==='head') url=API+'/api/trend-timeline/department/'+U.department_id;
+  else if(U.role==='company') url=API+'/api/trend-timeline/company/'+U.company_id;
+  else { el.innerHTML='<div class="card"><div class="empty-state"><div class="empty-icon">📈</div><p>Trend view is not available for your role.</p></div></div>';return; }
+
+  const res=await fetch(url);const data=await res.json();
+  if(!data.cycles||data.cycles.length<2){el.innerHTML='<div class="card"><div class="empty-state"><div class="empty-icon">📈</div><p>Not enough data for trend analysis.</p></div></div>';return}
+
+  // Build chart + legend
+  let html='<div class="card"><h3>Trend Over Time</h3>';
+  html+='<canvas id="trendCanvas" style="width:100%;height:300px;margin:16px 0"></canvas>';
+  // Legend with toggles
+  html+='<div id="trendLegend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">';
+  data.series.forEach((s,i)=>{
+    const clr=TREND_COLORS[i%TREND_COLORS.length];
+    const bold=s.overall?'font-weight:700':'';
+    html+='<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.82rem;'+bold+'">';
+    html+='<input type="checkbox" checked data-idx="'+i+'" onchange="drawTrendChart()">';
+    html+='<span style="width:12px;height:3px;background:'+clr+';border-radius:2px;display:inline-block"></span>'+s.name+'</label>';
+  });
+  html+='</div></div>';
+
+  // Delta table
+  if(data.series.length>0){
+    const first=0, last=data.cycles.length-1;
+    html+='<div class="card"><h3>Change: '+data.cycles[first]+' → '+data.cycles[last]+'</h3>';
+    data.series.forEach((s,i)=>{
+      if(s.data[first]==null||s.data[last]==null)return;
+      const diff=Math.round((s.data[last]-s.data[first])*10)/10;
+      const arrow=diff>0?'↑':diff<0?'↓':'→';
+      const clr=diff>0?'var(--green)':diff<0?'var(--red)':'var(--fg2)';
+      html+='<div class="trend-item"><div><div style="font-weight:500">'+s.name+'</div><div style="font-size:.8rem;color:var(--fg2)">'+s.data[first]+' → '+s.data[last]+'</div></div>';
+      html+='<div style="font-size:1.1rem;color:'+clr+'">'+arrow+' '+(diff>0?'+':'')+diff+'</div></div>';
+    });
+    html+='</div>';
+  }
+
+  el.innerHTML=html;
+  window._trendData=data;
+  // Size canvas for retina
+  const canvas=document.getElementById('trendCanvas');
+  const dpr=window.devicePixelRatio||1;
+  const rect=canvas.getBoundingClientRect();
+  canvas.width=rect.width*dpr;canvas.height=rect.height*dpr;
+  drawTrendChart();
+}
+
+function drawTrendChart(){
+  const data=window._trendData;if(!data)return;
+  const canvas=document.getElementById('trendCanvas');if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const dpr=window.devicePixelRatio||1;
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  // Which series are checked
+  const checks=document.querySelectorAll('#trendLegend input[type=checkbox]');
+  const visible=new Set();checks.forEach(cb=>{if(cb.checked)visible.add(parseInt(cb.dataset.idx))});
+
+  const pad={t:20*dpr,r:20*dpr,b:40*dpr,l:40*dpr};
+  const cw=W-pad.l-pad.r, ch=H-pad.t-pad.b;
+  const n=data.cycles.length;
+
+  // Grid + labels
+  ctx.strokeStyle='rgba(128,128,128,0.15)';ctx.lineWidth=1;
+  ctx.fillStyle='rgba(180,180,180,0.8)';ctx.font=(11*dpr)+'px system-ui';
+  ctx.textAlign='center';ctx.textBaseline='top';
+  for(let i=0;i<n;i++){
+    const x=pad.l+(i/(n-1))*cw;
+    ctx.beginPath();ctx.moveTo(x,pad.t);ctx.lineTo(x,H-pad.b);ctx.stroke();
+    // Short month label
+    const lbl=data.cycles[i].replace(/\s*\d{4}/,'').substring(0,3);
+    ctx.fillText(lbl,x,H-pad.b+6*dpr);
+  }
+  ctx.textAlign='right';ctx.textBaseline='middle';
+  for(let s=1;s<=5;s++){
+    const y=pad.t+ch-(s-1)/4*ch;
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+    ctx.fillText(s+'',pad.l-6*dpr,y);
+  }
+
+  // Lines
+  data.series.forEach((s,idx)=>{
+    if(!visible.has(idx))return;
+    const clr=TREND_COLORS[idx%TREND_COLORS.length];
+    ctx.strokeStyle=clr;ctx.lineWidth=(s.overall?3:1.8)*dpr;
+    ctx.beginPath();
+    let started=false;
+    s.data.forEach((v,i)=>{
+      if(v==null)return;
+      const x=pad.l+(i/(n-1))*cw;
+      const y=pad.t+ch-(v-1)/4*ch;
+      if(!started){ctx.moveTo(x,y);started=true}else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+    // Dots
+    ctx.fillStyle=clr;
+    s.data.forEach((v,i)=>{
+      if(v==null)return;
+      const x=pad.l+(i/(n-1))*cw;
+      const y=pad.t+ch-(v-1)/4*ch;
+      ctx.beginPath();ctx.arc(x,y,3*dpr,0,Math.PI*2);ctx.fill();
+    });
+  });
 }
 
 // ── PROFILE ───────────────────────

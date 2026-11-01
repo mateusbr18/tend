@@ -486,6 +486,68 @@ app.get('/api/trend/team/:teamId', (req, res) => {
   res.json({ hasTrend: true, currentCycle: cycles[0].label, previousCycle: cycles[1].label, trend });
 });
 
+// ── TREND TIMELINE (multi-cycle, all levels) ──
+app.get('/api/trend-timeline/team/:teamId', (req, res) => {
+  const t = db.prepare('SELECT d.company_id FROM teams t JOIN departments d ON d.id=t.department_id WHERE t.id=?').get(req.params.teamId);
+  if (!t) return res.json({ cycles: [], series: [] });
+  const cycles = db.prepare('SELECT id,label FROM cycles WHERE company_id=? ORDER BY starts_at ASC').all(t.company_id);
+  const valores = db.prepare('SELECT id,position,name_en FROM valores ORDER BY position').all();
+  const series = valores.map(v => {
+    const points = cycles.map(c => {
+      const r = db.prepare('SELECT AVG(r.score) as avg FROM responses r WHERE r.cycle_id=? AND r.valor_id=? AND r.user_id IN (SELECT id FROM users WHERE team_id=?)').get(c.id, v.id, req.params.teamId);
+      return r && r.avg ? Math.round(r.avg * 10) / 10 : null;
+    });
+    return { name: v.name_en, data: points };
+  });
+  // Also overall average per cycle
+  const overall = cycles.map(c => {
+    const r = db.prepare('SELECT AVG(r.score) as avg FROM responses r WHERE r.cycle_id=? AND r.user_id IN (SELECT id FROM users WHERE team_id=?)').get(c.id, req.params.teamId);
+    return r && r.avg ? Math.round(r.avg * 10) / 10 : null;
+  });
+  series.unshift({ name: 'Overall', data: overall, overall: true });
+  res.json({ cycles: cycles.map(c => c.label), series });
+});
+
+app.get('/api/trend-timeline/department/:deptId', (req, res) => {
+  const d = db.prepare('SELECT company_id FROM departments WHERE id=?').get(req.params.deptId);
+  if (!d) return res.json({ cycles: [], series: [] });
+  const cycles = db.prepare('SELECT id,label FROM cycles WHERE company_id=? ORDER BY starts_at ASC').all(d.company_id);
+  const teams = db.prepare('SELECT id,name FROM teams WHERE department_id=? ORDER BY name').all(req.params.deptId);
+  const series = teams.map(t => {
+    const points = cycles.map(c => {
+      const r = db.prepare('SELECT AVG(r.score) as avg FROM responses r WHERE r.cycle_id=? AND r.user_id IN (SELECT id FROM users WHERE team_id=?)').get(c.id, t.id);
+      return r && r.avg ? Math.round(r.avg * 10) / 10 : null;
+    });
+    return { name: t.name, data: points };
+  });
+  // Overall department avg
+  const overall = cycles.map(c => {
+    const r = db.prepare('SELECT AVG(r.score) as avg FROM responses r WHERE r.cycle_id=? AND r.user_id IN (SELECT id FROM users WHERE team_id IN (SELECT id FROM teams WHERE department_id=?))').get(c.id, req.params.deptId);
+    return r && r.avg ? Math.round(r.avg * 10) / 10 : null;
+  });
+  series.unshift({ name: 'Department Avg', data: overall, overall: true });
+  res.json({ cycles: cycles.map(c => c.label), series });
+});
+
+app.get('/api/trend-timeline/company/:companyId', (req, res) => {
+  const cycles = db.prepare('SELECT id,label FROM cycles WHERE company_id=? ORDER BY starts_at ASC').all(req.params.companyId);
+  const depts = db.prepare('SELECT id,name FROM departments WHERE company_id=? ORDER BY name').all(req.params.companyId);
+  const series = depts.map(d => {
+    const points = cycles.map(c => {
+      const r = db.prepare('SELECT AVG(r.score) as avg FROM responses r WHERE r.cycle_id=? AND r.user_id IN (SELECT id FROM users WHERE team_id IN (SELECT id FROM teams WHERE department_id=?))').get(c.id, d.id);
+      return r && r.avg ? Math.round(r.avg * 10) / 10 : null;
+    });
+    return { name: d.name, data: points };
+  });
+  // Overall company avg
+  const overall = cycles.map(c => {
+    const r = db.prepare('SELECT AVG(r.score) as avg FROM responses r WHERE r.cycle_id=? AND r.user_id IN (SELECT id FROM users WHERE team_id IN (SELECT t.id FROM teams t JOIN departments d ON d.id=t.department_id WHERE d.company_id=?))').get(c.id, req.params.companyId);
+    return r && r.avg ? Math.round(r.avg * 10) / 10 : null;
+  });
+  series.unshift({ name: 'Company Avg', data: overall, overall: true });
+  res.json({ cycles: cycles.map(c => c.label), series });
+});
+
 // ── DEPARTMENT-LEVEL (head) ───────────────────
 app.get('/api/heatmap/department/:deptId/:cycleId', (req, res) => {
   const teams = db.prepare('SELECT id,name FROM teams WHERE department_id=? ORDER BY name').all(req.params.deptId);
