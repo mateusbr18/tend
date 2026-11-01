@@ -91,44 +91,226 @@ if (cnt.c === 0) {
     for (const v of V) iv.run(...v);
 
     // Company
-    db.prepare('INSERT INTO companies (id,name) VALUES (1,?)').run('Nexus Corp');
+    db.prepare('INSERT INTO companies (id,name) VALUES (1,?)').run('Shapeless');
 
     // Departments
-    db.prepare('INSERT INTO departments (id,name,company_id) VALUES (?,?,?)').run(1,'Corporate Legal',1);
-    db.prepare('INSERT INTO departments (id,name,company_id) VALUES (?,?,?)').run(2,'Human Resources',1);
+    const idept = db.prepare('INSERT INTO departments (id,name,company_id) VALUES (?,?,?)');
+    idept.run(1,'Product & Technology',1);
+    idept.run(2,'People & Culture',1);
+    idept.run(3,'Commercial',1);
+    idept.run(4,'Operations',1);
 
     // Teams
-    db.prepare('INSERT INTO teams (id,name,department_id) VALUES (?,?,?)').run(1,'Contracts',1);
-    db.prepare('INSERT INTO teams (id,name,department_id) VALUES (?,?,?)').run(2,'Compliance',1);
-    db.prepare('INSERT INTO teams (id,name,department_id) VALUES (?,?,?)').run(3,'Talent & Culture',2);
+    const iteam = db.prepare('INSERT INTO teams (id,name,department_id) VALUES (?,?,?)');
+    // Product & Technology
+    iteam.run(1,'Platform',1);
+    iteam.run(2,'Design',1);
+    iteam.run(3,'Data',1);
+    // People & Culture
+    iteam.run(4,'Talent Acquisition',2);
+    iteam.run(5,'Learning & Development',2);
+    // Commercial
+    iteam.run(6,'Sales',3);
+    iteam.run(7,'Marketing',3);
+    // Operations
+    iteam.run(8,'Finance',4);
+    iteam.run(9,'Customer Success',4);
 
     // Users — password 1234 for all
     const pw = hashPwd('1234');
     const iu = db.prepare('INSERT INTO users (name,username,password_hash,role,team_id,department_id,company_id) VALUES (?,?,?,?,?,?,?)');
-    // Contracts team
-    iu.run('Ana Costa','ana',pw,'member',1,null,null);
-    iu.run('Bruno Lima','bruno',pw,'member',1,null,null);
-    iu.run('Carla Mendes','carla',pw,'member',1,null,null);
-    iu.run('Diego Santos','diego',pw,'member',1,null,null);
-    iu.run('Rafael Duarte','rafael',pw,'leader',1,null,null);
-    // Compliance team
-    iu.run('Fernanda Oliveira','fernanda',pw,'member',2,null,null);
-    iu.run('Gabriel Rocha','gabriel',pw,'member',2,null,null);
-    iu.run('Helena Martins','helena',pw,'member',2,null,null);
-    iu.run('Lucas Pereira','lucas',pw,'leader',2,null,null);
-    // Talent & Culture team
-    iu.run('Julia Santos','julia',pw,'member',3,null,null);
-    iu.run('Ricardo Alves','ricardo',pw,'member',3,null,null);
-    iu.run('Camila Ferreira','camila',pw,'leader',3,null,null);
-    // Head of Corporate Legal
-    iu.run('Mariana Silva','mariana',pw,'head',null,1,null);
-    // Head of HR
-    iu.run('Thiago Nunes','thiago',pw,'head',null,2,null);
-    // Company
+
+    // ── Company owner
     iu.run('Pedro Almeida','pedro',pw,'company',null,null,1);
 
-    // Cycle
-    db.prepare('INSERT INTO cycles (company_id,label,starts_at,ends_at) VALUES (?,?,?,?)').run(1,'October 2026','2026-10-01','2026-10-31');
+    // ── Department heads
+    iu.run('Renata Souza','renata',pw,'head',null,1,null);
+    iu.run('Marcelo Dias','marcelo',pw,'head',null,2,null);
+    iu.run('Juliana Costa','juliana',pw,'head',null,3,null);
+    iu.run('Roberto Ferreira','roberto',pw,'head',null,4,null);
+
+    // ── Team leaders
+    iu.run('Lucas Pereira','lucas',pw,'leader',1,null,null);      // Platform
+    iu.run('Isabela Martins','isabela',pw,'leader',2,null,null);   // Design
+    iu.run('Felipe Rocha','felipe',pw,'leader',3,null,null);       // Data
+    iu.run('Patricia Lima','patricia',pw,'leader',4,null,null);    // Talent Acquisition
+    iu.run('Daniel Oliveira','daniel',pw,'leader',5,null,null);    // L&D
+    iu.run('Amanda Ribeiro','amanda',pw,'leader',6,null,null);     // Sales
+    iu.run('Gustavo Nunes','gustavo',pw,'leader',7,null,null);     // Marketing
+    iu.run('Carolina Santos','carolina',pw,'leader',8,null,null);  // Finance
+    iu.run('Rodrigo Alves','rodrigo',pw,'leader',9,null,null);     // Customer Success
+
+    // ── Members
+    // Platform (team 1) — 4 devs
+    iu.run('Thiago Mendes','thiago',pw,'member',1,null,null);
+    iu.run('Larissa Cunha','larissa',pw,'member',1,null,null);
+    iu.run('Bruno Teixeira','bruno',pw,'member',1,null,null);
+    iu.run('Camila Barros','camila',pw,'member',1,null,null);
+    // Design (team 2)
+    iu.run('Marina Duarte','marina',pw,'member',2,null,null);
+    iu.run('André Vieira','andre',pw,'member',2,null,null);
+    iu.run('Sofia Cardoso','sofia',pw,'member',2,null,null);
+    // Data (team 3)
+    iu.run('Gabriel Moreira','gabriel',pw,'member',3,null,null);
+    iu.run('Natalia Freitas','natalia',pw,'member',3,null,null);
+    iu.run('Leonardo Campos','leonardo',pw,'member',3,null,null);
+    // Talent Acquisition (team 4)
+    iu.run('Aline Correia','aline',pw,'member',4,null,null);
+    iu.run('Marcos Pinto','marcos',pw,'member',4,null,null);
+    iu.run('Leticia Azevedo','leticia',pw,'member',4,null,null);
+    // L&D (team 5)
+    iu.run('Julia Ramos','julia',pw,'member',5,null,null);
+    iu.run('Henrique Gomes','henrique',pw,'member',5,null,null);
+    iu.run('Tatiana Lopes','tatiana',pw,'member',5,null,null);
+    // Sales (team 6)
+    iu.run('Ricardo Nascimento','ricardo',pw,'member',6,null,null);
+    iu.run('Fernanda Barbosa','fernanda',pw,'member',6,null,null);
+    iu.run('Diego Monteiro','diego',pw,'member',6,null,null);
+    iu.run('Bianca Araujo','bianca',pw,'member',6,null,null);
+    // Marketing (team 7)
+    iu.run('Eduardo Silva','eduardo',pw,'member',7,null,null);
+    iu.run('Vanessa Farias','vanessa',pw,'member',7,null,null);
+    iu.run('Rafael Castro','rafael',pw,'member',7,null,null);
+    // Finance (team 8)
+    iu.run('Paulo Rezende','paulo',pw,'member',8,null,null);
+    iu.run('Cristina Machado','cristina',pw,'member',8,null,null);
+    iu.run('Alexandre Borges','alexandre',pw,'member',8,null,null);
+    // Customer Success (team 9)
+    iu.run('Daniela Fonseca','daniela',pw,'member',9,null,null);
+    iu.run('Matheus Carvalho','matheus',pw,'member',9,null,null);
+    iu.run('Priscila Torres','priscila',pw,'member',9,null,null);
+    iu.run('Victor Moura','victor',pw,'member',9,null,null);
+
+    // ── Cycles — 6 months of data
+    const ic = db.prepare('INSERT INTO cycles (company_id,label,starts_at,ends_at,is_active) VALUES (?,?,?,?,?)');
+    ic.run(1,'May 2026','2026-05-01','2026-05-31',0);
+    ic.run(1,'June 2026','2026-06-01','2026-06-30',0);
+    ic.run(1,'July 2026','2026-07-01','2026-07-31',0);
+    ic.run(1,'August 2026','2026-08-01','2026-08-31',0);
+    ic.run(1,'September 2026','2026-09-01','2026-09-30',0);
+    ic.run(1,'October 2026','2026-10-01','2026-10-31',1);
+
+    // ── Response data — each team has a story ──
+    // Values order: 1=Wellbeing 2=Authenticity 3=Service 4=FairReward 5=Autonomy
+    //               6=Belonging 7=Growth 8=Achievement 9=MeaningfulWork 10=Craft
+
+    // Team profiles: [W, Au, Se, FR, Aut, Bel, Gr, Ach, MW, Cr] base scores per cycle
+    // Each array = 6 cycles × 10 values
+    const teamProfiles = {
+      // Platform (team 1): sprint pressure — starts good, craft+autonomy+wellbeing erode
+      1: [
+        [4,4,4,3,4,4,4,4,4,5], // May — healthy
+        [4,4,3,3,4,4,4,4,4,4], // Jun — slight dip
+        [3,3,3,3,3,4,3,4,3,3], // Jul — pressure builds
+        [2,3,3,3,2,3,2,3,3,2], // Aug — crunch
+        [2,2,3,3,2,3,2,4,2,2], // Sep — burnout signal
+        [3,3,3,3,3,3,3,3,3,3], // Oct — recovery starts
+      ],
+      // Design (team 2): high craft, high authenticity, low belonging (isolated)
+      2: [
+        [4,5,3,3,5,2,4,4,4,5],
+        [4,5,3,3,5,2,4,4,5,5],
+        [3,5,3,3,5,2,5,4,4,5],
+        [3,5,3,3,5,2,5,3,4,5],
+        [4,5,3,4,5,3,5,4,5,5],
+        [4,5,4,4,5,3,4,4,5,5],
+      ],
+      // Data (team 3): balanced and healthy — the reference team
+      3: [
+        [4,4,4,4,4,4,4,4,4,4],
+        [4,4,4,4,4,4,4,4,4,4],
+        [4,4,4,4,4,5,4,4,4,4],
+        [4,4,4,4,5,5,4,4,5,4],
+        [4,5,4,4,5,5,4,4,5,5],
+        [5,5,4,4,5,5,5,4,5,5],
+      ],
+      // Talent Acquisition (team 4): high service+belonging, low fair reward
+      4: [
+        [3,4,5,2,3,5,3,3,4,3],
+        [3,4,5,2,3,5,3,3,4,3],
+        [3,4,5,2,3,5,3,3,4,3],
+        [3,3,5,2,3,5,3,3,4,3],
+        [2,3,5,1,3,5,3,3,4,3],
+        [2,3,5,2,3,4,3,3,4,3],
+      ],
+      // L&D (team 5): high growth+meaning, low achievement (hard to measure)
+      5: [
+        [4,4,4,3,4,4,5,2,5,4],
+        [4,4,4,3,4,4,5,2,5,4],
+        [4,4,5,3,4,4,5,3,5,4],
+        [4,5,5,3,4,4,5,3,5,4],
+        [4,5,5,3,4,5,5,3,5,4],
+        [4,5,5,4,4,5,5,3,5,4],
+      ],
+      // Sales (team 6): high achievement, low wellbeing+meaningful work — hustle culture
+      6: [
+        [3,3,3,4,3,3,3,5,2,3],
+        [3,2,3,4,3,3,2,5,2,3],
+        [2,2,3,4,2,3,2,5,2,2],
+        [2,2,2,3,2,2,2,5,1,2],
+        [2,1,2,3,2,2,2,5,1,2],
+        [1,1,2,3,1,2,2,5,1,1],
+      ],
+      // Marketing (team 7): starts with low autonomy, steadily improves (restructuring)
+      7: [
+        [3,3,3,3,1,3,3,3,3,3],
+        [3,3,3,3,2,3,3,3,3,3],
+        [3,4,3,3,3,3,4,3,3,4],
+        [4,4,4,3,4,4,4,4,4,4],
+        [4,4,4,4,4,4,4,4,4,4],
+        [4,5,4,4,5,4,5,4,5,5],
+      ],
+      // Finance (team 8): stable, methodical, high craft, low growth
+      8: [
+        [4,3,3,4,3,3,2,4,3,5],
+        [4,3,3,4,3,3,2,4,3,5],
+        [4,3,3,4,3,4,2,4,3,5],
+        [4,3,3,4,3,4,2,4,3,5],
+        [4,3,3,4,3,4,2,4,3,5],
+        [4,3,3,4,3,4,2,4,3,5],
+      ],
+      // Customer Success (team 9): high service+belonging, autonomy low, wellbeing declining
+      9: [
+        [4,3,5,3,2,5,3,3,4,3],
+        [3,3,5,3,2,5,3,3,4,3],
+        [3,3,5,3,2,5,3,3,4,3],
+        [3,3,5,3,2,5,3,3,3,3],
+        [2,3,5,3,2,4,3,3,3,3],
+        [2,2,5,3,2,4,3,3,3,2],
+      ],
+    };
+
+    // Map team_id → list of user IDs (members + leader)
+    const teamUsers = {};
+    const allUsers = db.prepare('SELECT id, team_id FROM users WHERE team_id IS NOT NULL').all();
+    for (const u of allUsers) {
+      if (!teamUsers[u.team_id]) teamUsers[u.team_id] = [];
+      teamUsers[u.team_id].push(u.id);
+    }
+
+    // Insert responses with per-person variation (±1, clamped 1-5)
+    const ir = db.prepare('INSERT INTO responses (user_id,cycle_id,valor_id,score,answered_at) VALUES (?,?,?,?,?)');
+    // Simple seeded variation per person
+    const variation = [0, 1, -1, 0, 1, -1, 0, 0, 1, -1, 0, 1, -1, 0, 0];
+    let vi = 0;
+
+    for (const [teamId, profiles] of Object.entries(teamProfiles)) {
+      const users = teamUsers[parseInt(teamId)] || [];
+      for (let cycleIdx = 0; cycleIdx < 6; cycleIdx++) {
+        const cycleId = cycleIdx + 1; // cycles 1-6
+        const baseScores = profiles[cycleIdx];
+        const cycleMonth = ['2026-05','2026-06','2026-07','2026-08','2026-09','2026-10'][cycleIdx];
+        for (const userId of users) {
+          for (let valIdx = 0; valIdx < 10; valIdx++) {
+            const base = baseScores[valIdx];
+            const v = variation[(vi++) % variation.length];
+            const score = Math.max(1, Math.min(5, base + v));
+            const day = String(5 + (userId % 20)).padStart(2,'0');
+            ir.run(userId, cycleId, valIdx + 1, score, `${cycleMonth}-${day}T10:00:00`);
+          }
+        }
+      }
+    }
   });
   seedTx();
   console.log('Database seeded. Default password for all users: 1234');
