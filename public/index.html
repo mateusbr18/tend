@@ -89,6 +89,27 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 .badge-warn{background:rgba(251,191,36,.15);color:var(--yellow)}
 .badge-gap{background:rgba(248,113,113,.15);color:var(--red)}
 .hm-1{background:#991b1b;color:#fecaca}.hm-2{background:#92400e;color:#fde68a}.hm-3{background:#854d0e;color:#fef9c3}.hm-4{background:#166534;color:#bbf7d0}.hm-5{background:#14532d;color:#86efac}
+/* Responsive */
+@media(max-width:480px){
+  .container{padding:12px;padding-bottom:90px}
+  .card{padding:16px;margin-bottom:12px}
+  .hm-table th,.hm-table td{padding:4px 3px;font-size:.7rem;min-width:32px}
+  .hm-valor{font-size:.65rem}
+  .scale-btn{border-radius:10px}
+  .manage-header{flex-wrap:wrap;gap:8px}
+  .member-row{flex-wrap:wrap;gap:8px}
+  .member-actions{width:100%;justify-content:flex-end}
+  .team-block-header{flex-wrap:wrap;gap:8px}
+  .modal{padding:16px;margin:8px}
+  .overview-row{flex-wrap:wrap;gap:4px}
+  .dept-block-header{word-break:break-word}
+  .tabs{gap:2px}
+  .tab{padding:6px 10px;font-size:.8rem}
+}
+.drilldown-link{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px}
+.drilldown-link:hover{color:var(--accent)}
+.back-btn{display:inline-flex;align-items:center;gap:4px;background:none;border:none;color:var(--accent);font-size:.9rem;cursor:pointer;font-family:inherit;padding:4px 0;margin-bottom:12px}
+.back-btn:hover{text-decoration:underline}
 .role-tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:600;background:var(--bg3);color:var(--accent);margin-bottom:4px}
 /* MANAGE */
 .manage-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
@@ -145,8 +166,11 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
     <div class="input-group"><label>Full Name</label><input type="text" id="regName" placeholder="Your full name"></div>
     <div class="input-group"><label>Username</label><input type="text" id="regUsername" placeholder="Choose a username" autocapitalize="none"></div>
     <div class="input-group"><label>Password</label><input type="password" id="regPwd" placeholder="At least 4 characters"></div>
-    <div class="input-group"><label>Role</label>
-      <select id="regRole"><option value="member">Team Member</option><option value="leader">Team Leader</option></select>
+    <div class="input-group"><label>Company</label>
+      <select id="regCompany" onchange="onRegCompanyChange()"><option value="">Select your company...</option></select>
+    </div>
+    <div class="input-group"><label>Team</label>
+      <select id="regTeam"><option value="">Select company first...</option></select>
     </div>
     <button class="btn btn-primary" onclick="doRegister()">Create Account</button>
     <div style="text-align:center;margin-top:16px"><button class="link-btn" onclick="showLogin()">Already have an account? Sign in</button></div>
@@ -241,7 +265,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 </div>
 
 <script>
-let U = null, cycle = null, valores = [], pulseAnswers = [], currentQ = 0, dashTab = 'overview';
+let U = null, cycle = null, valores = [], pulseAnswers = [], currentQ = 0, dashTab = 'overview', hmDrillTeam = null;
 const API = '';
 
 function navigate(s) {
@@ -260,7 +284,23 @@ function navigate(s) {
 }
 
 function showLogin(){document.getElementById('registerScreen').classList.add('hidden');document.getElementById('loginScreen').classList.remove('hidden');document.getElementById('loginError').classList.add('hidden')}
-function showRegister(){document.getElementById('loginScreen').classList.add('hidden');document.getElementById('registerScreen').classList.remove('hidden');document.getElementById('regError').classList.add('hidden')}
+async function showRegister(){document.getElementById('loginScreen').classList.add('hidden');document.getElementById('registerScreen').classList.remove('hidden');document.getElementById('regError').classList.add('hidden');
+  // Load companies for picker
+  try{const res=await fetch(API+'/api/companies');const companies=await res.json();
+    const sel=document.getElementById('regCompany');sel.innerHTML='<option value="">Select your company...</option>';
+    companies.forEach(c=>{sel.innerHTML+='<option value="'+c.id+'">'+c.name+'</option>'});
+  }catch(e){}
+}
+async function onRegCompanyChange(){
+  const compId=document.getElementById('regCompany').value;
+  const teamSel=document.getElementById('regTeam');
+  teamSel.innerHTML='<option value="">Loading...</option>';
+  if(!compId){teamSel.innerHTML='<option value="">Select company first...</option>';return}
+  try{const res=await fetch(API+'/api/companies/'+compId+'/all-teams');const data=await res.json();
+    teamSel.innerHTML='<option value="">Select your team...</option>';
+    data.forEach(d=>{d.teams.forEach(t=>{teamSel.innerHTML+='<option value="'+t.id+'">'+d.department.name+' → '+t.name+'</option>'})});
+  }catch(e){teamSel.innerHTML='<option value="">Error loading teams</option>'}
+}
 function showError(id,msg){const e=document.getElementById(id);e.textContent=msg;e.classList.remove('hidden')}
 
 async function doLogin(){
@@ -276,14 +316,18 @@ async function doLogin(){
 
 async function doRegister(){
   const name=document.getElementById('regName').value.trim(),username=document.getElementById('regUsername').value.trim(),
-        password=document.getElementById('regPwd').value,role=document.getElementById('regRole').value;
+        password=document.getElementById('regPwd').value,teamId=document.getElementById('regTeam').value;
   if(!name||!username||!password){showError('regError','All fields are required.');return}
+  if(!teamId){showError('regError','Please select your team.');return}
   try{
-    const res=await fetch(API+'/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,username,password,role,team_id:1})});
+    const res=await fetch(API+'/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,username,password,role:'member',team_id:parseInt(teamId)})});
     const data=await res.json();
     if(!res.ok){showError('regError',data.error||'Registration failed');return}
-    U=data;U.team_name='Contracts';U.department_name='Corporate Legal';U.company_name='Nexus Corp';U.department_id=1;U.company_id=1;
-    enterApp();
+    // Now login to get full resolved data
+    const lres=await fetch(API+'/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+    const ldata=await lres.json();
+    if(!lres.ok){showError('regError','Registered but login failed. Please sign in.');return}
+    U=ldata;enterApp();
   }catch(e){showError('regError','Connection error.')}
 }
 
@@ -399,7 +443,7 @@ async function loadDashboard(){
   else if(dashTab==='grow') await renderGrow();
   else if(dashTab==='trend') await renderTrend();
 }
-function switchDash(t){dashTab=t;loadDashboard()}
+function switchDash(t){dashTab=t;hmDrillTeam=null;loadDashboard()}
 
 // ── OVERVIEW ──────────────────────
 async function renderOverview(){
@@ -455,6 +499,11 @@ async function renderHeatMap(){
   const el=document.getElementById('dashContent');
   if(!cycle){el.innerHTML='<div class="card"><div class="empty-state"><div class="empty-icon">🗺️</div><p>No active cycle.</p></div></div>';return}
 
+  // If drilling into a specific team (for head/company)
+  if(hmDrillTeam && (U.role==='head'||U.role==='company')){
+    await renderHeatMapDrill(el);return;
+  }
+
   let url;
   if(U.role==='leader') url='/api/heatmap/team/'+U.team_id+'/'+cycle.id;
   else if(U.role==='head') url='/api/heatmap/department/'+U.department_id+'/'+cycle.id;
@@ -465,9 +514,13 @@ async function renderHeatMap(){
   const hasData=grid.some(r=>Object.values(r.scores).some(s=>s!==null));
   if(!hasData){el.innerHTML='<div class="card"><div class="empty-state"><div class="empty-icon">🗺️</div><p>No responses yet.</p><p style="font-size:.85rem">The heat map appears once members complete their check-in.</p></div></div>';return}
 
-  const colLabel=U.role==='leader'?'Members':U.role==='head'?'Teams':'Departments';
+  const canDrill=U.role==='head'||U.role==='company';
+  const colLabel=U.role==='leader'?'Members':U.role==='head'?'Teams (tap to see people)':'Departments';
   let html='<div class="card"><h3>Heat Map · '+colLabel+'</h3><div class="hm-grid"><table class="hm-table"><thead><tr><th></th>';
-  columns.forEach(c=>{const nm=c.name.length>10?c.name.slice(0,9)+'.':c.name;html+='<th>'+nm+'</th>'});
+  columns.forEach(c=>{const nm=c.name.length>10?c.name.slice(0,9)+'.':c.name;
+    if(canDrill && U.role==='head'){html+='<th class="drilldown-link" onclick="drillHeatmap('+c.id+',\''+c.name.replace(/'/g,"\\'")+'\')">'+nm+'</th>'}
+    else{html+='<th>'+nm+'</th>'}
+  });
   html+='<th>Avg</th></tr></thead><tbody>';
   grid.forEach(row=>{
     html+='<tr><td class="hm-valor">'+row.valor+'</td>';
@@ -477,6 +530,49 @@ async function renderHeatMap(){
   });
   html+='</tbody></table></div></div>';
   if(data.gaps&&data.gaps.length>0) html+='<div class="card"><h3>⚠️ Attention Areas</h3><p style="color:var(--fg2);font-size:.9rem;margin-top:8px">Averages at or below 2.5: <strong>'+data.gaps.join(', ')+'</strong></p></div>';
+
+  // For company level, add expandable dept → team drill
+  if(U.role==='company'){
+    html+='<div class="card"><h3>Drill Down by Team</h3>';
+    const deptsRes=await fetch(API+'/api/companies/'+U.company_id+'/departments');
+    const depts=await deptsRes.json();
+    for(const d of depts){
+      const teamsRes=await fetch(API+'/api/departments/'+d.id+'/teams');
+      const teams=await teamsRes.json();
+      html+='<div style="margin-bottom:12px"><div style="font-weight:600;font-size:.9rem;margin-bottom:4px">'+d.name+'</div>';
+      teams.forEach(t=>{html+='<div class="drilldown-link" style="padding:4px 0;font-size:.9rem;color:var(--accent)" onclick="drillHeatmap('+t.id+',\''+t.name.replace(/'/g,"\\'")+'\')">→ '+t.name+'</div>'});
+      html+='</div>';
+    }
+    html+='</div>';
+  }
+
+  el.innerHTML=html;
+}
+
+function drillHeatmap(teamId,teamName){hmDrillTeam={id:teamId,name:teamName};renderHeatMap()}
+function backFromDrill(){hmDrillTeam=null;renderHeatMap()}
+
+async function renderHeatMapDrill(el){
+  const res=await fetch(API+'/api/heatmap/team/'+hmDrillTeam.id+'/'+cycle.id);
+  const data=await res.json();
+  const{columns,grid}=data;
+  const hasData=grid.some(r=>Object.values(r.scores).some(s=>s!==null));
+
+  let html='<button class="back-btn" onclick="backFromDrill()">← Back to overview</button>';
+  if(!hasData){html+='<div class="card"><div class="empty-state"><div class="empty-icon">🗺️</div><p>No responses in '+hmDrillTeam.name+' yet.</p></div></div>';el.innerHTML=html;return}
+
+  html+='<div class="card"><h3>'+hmDrillTeam.name+' · Per Person</h3><div class="hm-grid"><table class="hm-table"><thead><tr><th></th>';
+  columns.forEach(c=>{const nm=c.name.split(' ')[0];html+='<th>'+nm+'</th>'});
+  html+='<th>Avg</th></tr></thead><tbody>';
+  grid.forEach(row=>{
+    html+='<tr><td class="hm-valor">'+row.valor+'</td>';
+    columns.forEach(c=>{const s=row.scores[String(c.id)];html+=hmCell(s)});
+    if(row.avg!==null){const cls=hmColorClass(row.avg);html+='<td class="'+cls+' hm-avg">'+row.avg+'</td>'}else html+='<td class="hm-null">—</td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div></div>';
+
+  if(data.gaps&&data.gaps.length>0) html+='<div class="card"><h3>⚠️ '+hmDrillTeam.name+' — Attention Areas</h3><p style="color:var(--fg2);font-size:.9rem;margin-top:8px">Averages at or below 2.5: <strong>'+data.gaps.join(', ')+'</strong></p></div>';
   el.innerHTML=html;
 }
 
@@ -639,8 +735,28 @@ async function loadProfile(){
     else{history.forEach(h=>{if(h.answers_count===0)return;html+='<div class="history-item"><span>'+h.label+'</span><span style="color:var(--fg2)">avg '+h.avg_score+' · min '+h.min_score+'</span></div>'})}
     html+='</div>';
   }
+  html+='<div class="card"><h3>Security</h3><button class="btn btn-secondary" style="margin-top:8px" onclick="showChangePassword()">Change Password</button></div>';
   html+='<button class="btn btn-secondary" style="margin-top:8px" onclick="logout()">Sign Out</button>';
   document.getElementById('profileContent').innerHTML=html;
+}
+
+function showChangePassword(){
+  openModal('<h3>Change Password</h3><div class="input-group"><label>Current Password</label><input id="cpOld" type="password" placeholder="Your current password"></div><div class="input-group"><label>New Password</label><input id="cpNew" type="password" placeholder="At least 4 characters"></div><div class="input-group"><label>Confirm New Password</label><input id="cpConfirm" type="password" placeholder="Repeat new password"></div><div id="cpError" class="error-msg hidden"></div><div id="cpSuccess" class="hidden" style="background:rgba(52,211,153,.15);color:var(--green);padding:12px 16px;border-radius:10px;margin-bottom:16px;font-size:.9rem"></div><div class="modal-btns"><button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="doChangePassword()">Update</button></div>');
+}
+
+async function doChangePassword(){
+  const old_password=document.getElementById('cpOld').value,new_password=document.getElementById('cpNew').value,confirm=document.getElementById('cpConfirm').value;
+  if(!old_password||!new_password){showError('cpError','All fields required.');return}
+  if(new_password!==confirm){showError('cpError','New passwords do not match.');return}
+  if(new_password.length<4){showError('cpError','New password must be at least 4 characters.');return}
+  try{
+    const res=await fetch(API+'/api/change-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:U.id,old_password,new_password})});
+    const data=await res.json();
+    if(!res.ok){showError('cpError',data.error||'Failed');return}
+    document.getElementById('cpError').classList.add('hidden');
+    const s=document.getElementById('cpSuccess');s.textContent='Password updated successfully!';s.classList.remove('hidden');
+    setTimeout(closeModal,1500);
+  }catch(e){showError('cpError','Connection error.')}
 }
 
 // ── MANAGE ───────────────────────
@@ -687,11 +803,14 @@ async function doAddMember(){
 }
 
 function showEditUser(id,name,username,role){
-  openModal('<h3>Edit User</h3><div class="input-group"><label>Name</label><input id="eName" value="'+name+'"></div><div class="input-group"><label>Username</label><input id="eUser" value="'+username+'"></div><div class="input-group"><label>New Password (leave empty to keep)</label><input id="ePwd" type="password" placeholder=""></div><div id="eError" class="error-msg hidden"></div><div class="modal-btns"><button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="doEditUser('+id+')">Save</button></div>');
+  const isAdmin=U.role==='company'||U.role==='head';
+  const pwdField=isAdmin?'<div class="input-group"><label>Reset Password (admin only — leave empty to keep)</label><input id="ePwd" type="password" placeholder="New password"></div>':'';
+  openModal('<h3>Edit User</h3><div class="input-group"><label>Name</label><input id="eName" value="'+name+'"></div><div class="input-group"><label>Username</label><input id="eUser" value="'+username+'"></div>'+pwdField+'<div id="eError" class="error-msg hidden"></div><div class="modal-btns"><button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="doEditUser('+id+')">Save</button></div>');
 }
 
 async function doEditUser(id){
-  const name=document.getElementById('eName').value.trim(),username=document.getElementById('eUser').value.trim(),password=document.getElementById('ePwd').value;
+  const name=document.getElementById('eName').value.trim(),username=document.getElementById('eUser').value.trim();
+  const pwdEl=document.getElementById('ePwd');const password=pwdEl?pwdEl.value:'';
   if(!name||!username){showError('eError','Name and username required.');return}
   const body={name,username};if(password)body.password=password;
   try{

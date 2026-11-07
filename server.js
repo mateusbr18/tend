@@ -869,6 +869,33 @@ app.post('/api/departments', (req, res) => {
   res.json({ id: r.lastInsertRowid, name: name.trim(), company_id });
 });
 
+// ── PASSWORD CHANGE ──────────────────────────
+app.post('/api/change-password', (req, res) => {
+  const { user_id, old_password, new_password } = req.body;
+  if (!user_id || !old_password || !new_password) return res.status(400).json({ error: 'All fields required' });
+  if (new_password.length < 4) return res.status(400).json({ error: 'New password must be at least 4 characters' });
+  const u = db.prepare('SELECT id, password_hash FROM users WHERE id=?').get(user_id);
+  if (!u) return res.status(404).json({ error: 'User not found' });
+  if (u.password_hash !== hashPwd(old_password)) return res.status(401).json({ error: 'Current password is incorrect' });
+  db.prepare('UPDATE users SET password_hash=? WHERE id=?').run(hashPwd(new_password), user_id);
+  res.json({ ok: true });
+});
+
+// ── ALL TEAMS FOR COMPANY (registration picker) ──
+app.get('/api/companies/:id/all-teams', (req, res) => {
+  const depts = db.prepare('SELECT id, name FROM departments WHERE company_id=? ORDER BY name').all(req.params.id);
+  const result = depts.map(d => {
+    const teams = db.prepare('SELECT id, name FROM teams WHERE department_id=? ORDER BY name').all(d.id);
+    return { department: d, teams };
+  });
+  res.json(result);
+});
+
+// ── LIST COMPANIES (for registration) ──
+app.get('/api/companies', (_, res) => {
+  res.json(db.prepare('SELECT id, name FROM companies ORDER BY name').all());
+});
+
 // SPA fallback
 app.get('*', (_, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
