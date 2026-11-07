@@ -7,7 +7,7 @@ const crypto = require('crypto');
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
 const dbPath = path.join(__dirname, 'ferramenta1.db');
 const db = new Database(dbPath);
@@ -67,6 +67,51 @@ db.exec(`
     score INTEGER NOT NULL CHECK (score BETWEEN 1 AND 5),
     answered_at TEXT DEFAULT (datetime('now')),
     UNIQUE(user_id, cycle_id, valor_id)
+  );
+`);
+
+// ── Skills Matrix schema (Pillar 2) ────────────
+// Same database as Tend so values and skills can be cross-referenced.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS skills (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    team_id INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    description TEXT,
+    required_level TEXT NOT NULL DEFAULT 'I' CHECK (required_level IN ('B','I','M')),
+    delegable TEXT NOT NULL DEFAULT 'none' CHECK (delegable IN ('full','partial','none')),
+    position INTEGER NOT NULL DEFAULT 0,
+    created_by INTEGER REFERENCES users(id),
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+  CREATE TABLE IF NOT EXISTS ai_agents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    team_id INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    description TEXT,
+    created_by INTEGER REFERENCES users(id),
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+  CREATE TABLE IF NOT EXISTS skill_assessments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    skill_id INTEGER NOT NULL REFERENCES skills(id) ON DELETE CASCADE,
+    subject_type TEXT NOT NULL CHECK (subject_type IN ('user','agent')),
+    subject_id INTEGER NOT NULL,
+    source TEXT NOT NULL CHECK (source IN ('self','leader')),
+    level TEXT NOT NULL CHECK (level IN ('B','I','M','NA')),
+    note TEXT,
+    assessed_by INTEGER REFERENCES users(id),
+    assessed_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(skill_id, subject_type, subject_id, source)
+  );
+  CREATE TABLE IF NOT EXISTS skill_plans (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    skill_id INTEGER NOT NULL REFERENCES skills(id) ON DELETE CASCADE,
+    action_type TEXT NOT NULL CHECK (action_type IN ('pairing','mentoring','training','hiring','ai_training','delegate')),
+    description TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned','in_progress','done')),
+    created_by INTEGER REFERENCES users(id),
+    created_at TEXT DEFAULT (datetime('now'))
   );
 `);
 
@@ -425,6 +470,210 @@ if (cnt.c === 0) {
   });
   seedTx();
   console.log('Database seeded. Default password for all users: 1234');
+}
+
+// ── Skills Matrix seed ─────────────────────────
+// Runs on its own guard so existing Tend databases also get skills data.
+// Levels per skill as a string: B / I / M, N = not applicable (agents).
+const skillsCnt = db.prepare('SELECT COUNT(*) as c FROM skills').get();
+if (skillsCnt.c === 0 && db.prepare('SELECT COUNT(*) as c FROM teams').get().c > 0) {
+  const SKILLS_SEED = {
+    1: { // Platform — strong technically, thin on mentoring, no one tunes performance
+      skills: [
+        ['Backend development','I','partial'],
+        ['Code review','I','partial'],
+        ['CI/CD & infrastructure','I','full'],
+        ['Incident response','I','partial'],
+        ['Technical documentation','B','full'],
+        ['Mentoring','I','none'],
+        ['Stakeholder communication','I','none'],
+        ['Performance tuning','I','partial'],
+      ],
+      humans: {
+        lucas:   ['MMIIBIMB','MMIIBIMB'],
+        thiago:  ['MIMIBBIB','MIMIBBIB'],
+        larissa: ['IBBBIBBB','IIBBIBIB'],
+        bruno:   ['IMIBBBIB','IMIBBBIB'],
+        camila:  ['BBBBBBBB','IBBBBBBB'],
+      },
+      agents: { 'Code Assistant': 'IINNMNNB', 'CI Bot': 'NNMBINNN' },
+    },
+    2: { // Design
+      skills: [
+        ['UX research','I','partial'],
+        ['Interface design','M','partial'],
+        ['Prototyping','I','full'],
+        ['Design system maintenance','I','full'],
+        ['Workshop facilitation','I','none'],
+        ['Accessibility','I','partial'],
+      ],
+      humans: {
+        isabela: ['MMIIMB','MMIIMB'],
+        marina:  ['IMMIBB','IMMIIB'],
+        andre:   ['BIIMBB','BIIMBB'],
+        sofia:   ['MBIBIB','MBIBIB'],
+      },
+      agents: { 'Design Assistant': 'BNIINN' },
+    },
+    3: { // Data — the book's example: dashboards delegated to Analytics AI
+      skills: [
+        ['Backlog management','I','full'],
+        ['Dashboards','M','full'],
+        ['Data analysis','I','partial'],
+        ['Statistics','I','partial'],
+        ['Data storytelling','I','none'],
+        ['Stakeholder negotiation','I','none'],
+      ],
+      humans: {
+        felipe:   ['IMIIMI','IMIIMI'],
+        gabriel:  ['BBIMIB','BBIMIB'],
+        natalia:  ['IIMIBB','IMMIIB'],
+        leonardo: ['BBBIBB','BBBIBB'],
+      },
+      agents: { 'Jira Bot': 'MNNNNN', 'Analytics AI': 'NMMINN' },
+    },
+    4: { // Talent Acquisition
+      skills: [
+        ['Sourcing','I','full'],
+        ['Screening','I','partial'],
+        ['Interviewing','M','none'],
+        ['Offer negotiation','I','none'],
+        ['Employer branding','B','partial'],
+      ],
+      humans: {
+        patricia: ['IMMMI','IMMMI'],
+        aline:    ['MIIBB','MIIIB'],
+        marcos:   ['IIBBB','IIBBB'],
+        leticia:  ['IBIBI','IBIBI'],
+      },
+      agents: { 'Sourcing Bot': 'MINNN' },
+    },
+    5: { // Learning & Development
+      skills: [
+        ['Training facilitation','M','none'],
+        ['Curriculum design','I','partial'],
+        ['Content production','I','full'],
+        ['Learning analytics','B','full'],
+        ['Coaching','I','none'],
+      ],
+      humans: {
+        daniel:   ['MMIBI','MMIBI'],
+        julia:    ['MIMBB','MIMBB'],
+        henrique: ['IBIBB','MBIBB'],
+        tatiana:  ['IIIBI','IIIBI'],
+      },
+      agents: { 'Content AI': 'NBMIN' },
+    },
+    6: { // Sales
+      skills: [
+        ['Prospecting','I','full'],
+        ['Discovery calls','M','none'],
+        ['Proposal writing','I','partial'],
+        ['Negotiation','M','none'],
+        ['CRM hygiene','B','full'],
+        ['Forecasting','I','partial'],
+      ],
+      humans: {
+        amanda:   ['MMIMBI','MMIMBI'],
+        ricardo:  ['IMIMBB','IMIMBB'],
+        fernanda: ['MIIIBB','MMIMBB'],
+        diego:    ['IBBBBB','IBBBBB'],
+        bianca:   ['BIIIBB','BIIIBB'],
+      },
+      agents: { 'CRM Bot': 'INBNMI' },
+    },
+    7: { // Marketing
+      skills: [
+        ['Content writing','I','partial'],
+        ['Campaign analytics','I','full'],
+        ['Brand strategy','M','none'],
+        ['Social media operations','B','full'],
+        ['Event planning','I','none'],
+      ],
+      humans: {
+        gustavo: ['IIMBI','IIMBI'],
+        eduardo: ['MBBII','MBBII'],
+        vanessa: ['IIBMB','IIIMB'],
+        rafael:  ['BIBIB','BIBIB'],
+      },
+      agents: { 'Campaign AI': 'IMNIN' },
+    },
+    8: { // Finance — the book's example: the weekly report, four hours a week, now delegated
+      skills: [
+        ['Weekly financial report','I','full'],
+        ['Budget planning','M','partial'],
+        ['Reconciliation','I','full'],
+        ['Compliance','I','partial'],
+        ['Executive communication','I','none'],
+        ['Cash-flow forecasting','I','partial'],
+      ],
+      humans: {
+        carolina:  ['MMIIMB','MMIIMB'],
+        paulo:     ['IIMIBB','IIMIBB'],
+        cristina:  ['MBIMIB','MBIMIB'],
+        alexandre: ['BBIBBB','IBIBBB'],
+      },
+      agents: { 'Report Bot': 'MNINNN' },
+    },
+    9: { // Customer Success
+      skills: [
+        ['Onboarding','I','partial'],
+        ['Ticket triage','B','full'],
+        ['Escalation handling','M','none'],
+        ['Renewal negotiation','I','none'],
+        ['Product knowledge','I','partial'],
+      ],
+      humans: {
+        rodrigo:  ['MIMMM','MIMMM'],
+        daniela:  ['IBIIM','IBIIM'],
+        matheus:  ['IIBBI','IIIBI'],
+        priscila: ['BIBBB','BIBBB'],
+        victor:   ['MBIBI','MBIBI'],
+      },
+      agents: { 'Support Bot': 'BMNNI' },
+    },
+  };
+  const PLANS_SEED = [
+    [1,'Performance tuning','training','Profiling course for Thiago; he pairs with Bruno afterwards.','planned'],
+    [3,'Dashboards','delegate','Analytics AI builds the weekly dashboards. Felipe reviews on Mondays.','in_progress'],
+    [8,'Weekly financial report','delegate','Report Bot generates the report. Carolina reviews before it goes out.','done'],
+    [8,'Budget planning','pairing','Carolina pairs with Cristina on next quarter\'s budget.','planned'],
+  ];
+  const seedSkills = db.transaction(() => {
+    const isk = db.prepare('INSERT INTO skills (team_id,name,required_level,delegable,position,created_by) VALUES (?,?,?,?,?,?)');
+    const iag = db.prepare('INSERT INTO ai_agents (team_id,name,description,created_by) VALUES (?,?,?,?)');
+    const ias = db.prepare('INSERT OR IGNORE INTO skill_assessments (skill_id,subject_type,subject_id,source,level,assessed_by,assessed_at) VALUES (?,?,?,?,?,?,?)');
+    const ipl = db.prepare('INSERT INTO skill_plans (skill_id,action_type,description,status,created_by) VALUES (?,?,?,?,?)');
+    const byUsername = db.prepare('SELECT id, role FROM users WHERE username=?');
+    const leaderOf = db.prepare("SELECT id FROM users WHERE team_id=? AND role='leader' LIMIT 1");
+    const lvl = ch => ({ B:'B', I:'I', M:'M', N:'NA' })[ch];
+    for (const [teamId, t] of Object.entries(SKILLS_SEED)) {
+      const tid = parseInt(teamId);
+      if (!db.prepare('SELECT id FROM teams WHERE id=?').get(tid)) continue;
+      const leader = leaderOf.get(tid);
+      const leaderId = leader ? leader.id : null;
+      const skillIds = t.skills.map((s, i) => isk.run(tid, s[0], s[1], s[2], i, leaderId).lastInsertRowid);
+      for (const [username, [leaderLevels, selfLevels]] of Object.entries(t.humans)) {
+        const u = byUsername.get(username);
+        if (!u) continue;
+        skillIds.forEach((sid, i) => {
+          ias.run(sid, 'user', u.id, 'self', lvl(selfLevels[i]), u.id, '2026-10-06T09:00:00');
+          if (u.role !== 'leader' && leaderId) ias.run(sid, 'user', u.id, 'leader', lvl(leaderLevels[i]), leaderId, '2026-10-13T15:00:00');
+        });
+      }
+      for (const [agentName, levels] of Object.entries(t.agents)) {
+        const aid = iag.run(tid, agentName, null, leaderId).lastInsertRowid;
+        skillIds.forEach((sid, i) => ias.run(sid, 'agent', aid, 'leader', lvl(levels[i]), leaderId, '2026-10-13T15:00:00'));
+      }
+    }
+    for (const [teamId, skillName, type, desc, status] of PLANS_SEED) {
+      const s = db.prepare('SELECT id FROM skills WHERE team_id=? AND name=?').get(teamId, skillName);
+      const leader = leaderOf.get(teamId);
+      if (s) ipl.run(s.id, type, desc, status, leader ? leader.id : null);
+    }
+  });
+  seedSkills();
+  console.log('Skills Matrix seeded.');
 }
 
 // ── Helpers ────────────────────────────────────
@@ -811,6 +1060,7 @@ app.delete('/api/users/:id', (req, res) => {
   const existing = db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'User not found' });
   db.prepare('DELETE FROM responses WHERE user_id=?').run(req.params.id);
+  db.prepare("DELETE FROM skill_assessments WHERE subject_type='user' AND subject_id=?").run(req.params.id);
   db.prepare('DELETE FROM users WHERE id=?').run(req.params.id);
   res.json({ ok: true });
 });
@@ -896,8 +1146,343 @@ app.get('/api/companies', (_, res) => {
   res.json(db.prepare('SELECT id, name FROM companies ORDER BY name').all());
 });
 
-// SPA fallback
-app.get('*', (_, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+// ═══════════════════════════════════════════════
+// SKILLS MATRIX (Pillar 2)
+// ═══════════════════════════════════════════════
+const LVL = { NA: 0, B: 1, I: 2, M: 3 };
+const firstName = n => (n || '').split(' ')[0];
+
+// Tend signals that relate to skills: Autonomy (5), Growth (7), Craft (10)
+function tendSignals(companyId, teamIds, userId) {
+  if (!companyId) return null;
+  const cycle = db.prepare('SELECT * FROM cycles WHERE company_id=? ORDER BY is_active DESC, starts_at DESC LIMIT 1').get(companyId);
+  if (!cycle) return null;
+  let where, params;
+  if (userId) { where = 'r.user_id=?'; params = [cycle.id, userId]; }
+  else if (teamIds && teamIds.length) { where = `u.team_id IN (${teamIds.map(() => '?').join(',')})`; params = [cycle.id, ...teamIds]; }
+  else return null;
+  const rows = db.prepare(`
+    SELECT v.position, v.name_en as name, ROUND(AVG(r.score),1) as avg, COUNT(DISTINCT r.user_id) as n
+    FROM responses r JOIN users u ON u.id=r.user_id JOIN valores v ON v.id=r.valor_id
+    WHERE r.cycle_id=? AND ${where} AND v.position IN (5,7,10)
+    GROUP BY v.position ORDER BY v.position`).all(...params);
+  return { cycle: cycle.label, values: rows };
+}
+
+// Builds the full matrix for a team: cells, status per skill, suggestions, discrepancies.
+function buildTeamMatrix(teamId) {
+  const team = db.prepare('SELECT t.id, t.name, t.department_id, d.name as department_name, d.company_id FROM teams t JOIN departments d ON d.id=t.department_id WHERE t.id=?').get(teamId);
+  if (!team) return null;
+  const skills = db.prepare('SELECT * FROM skills WHERE team_id=? ORDER BY position, id').all(teamId);
+  const humans = db.prepare("SELECT id, name, role FROM users WHERE team_id=? ORDER BY CASE role WHEN 'leader' THEN 0 ELSE 1 END, name").all(teamId);
+  const agents = db.prepare('SELECT id, name, description FROM ai_agents WHERE team_id=? ORDER BY id').all(teamId);
+  const rows = db.prepare('SELECT a.* FROM skill_assessments a JOIN skills s ON s.id=a.skill_id WHERE s.team_id=?').all(teamId);
+  const idx = {};
+  for (const r of rows) {
+    const k = `${r.skill_id}:${r.subject_type}:${r.subject_id}`;
+    (idx[k] = idx[k] || {})[r.source] = { level: r.level, note: r.note, assessed_at: r.assessed_at };
+  }
+  const plans = db.prepare('SELECT p.*, u.name as created_by_name FROM skill_plans p JOIN skills s ON s.id=p.skill_id LEFT JOIN users u ON u.id=p.created_by WHERE s.team_id=? ORDER BY p.id').all(teamId);
+
+  const matrix = skills.map(s => {
+    const req = LVL[s.required_level];
+    const cells = {};
+    const meeting = [], below = [], unassessed = [], discrepancies = [];
+    let best = null;
+    for (const h of humans) {
+      const a = idx[`${s.id}:user:${h.id}`] || {};
+      const self = a.self ? a.self.level : null;
+      const leader = a.leader ? a.leader.level : null;
+      const effective = leader || self;
+      const discrepancy = !!(self && leader && self !== leader);
+      cells[`user:${h.id}`] = { self, leader, effective, discrepancy, note: a.leader ? a.leader.note : (a.self ? a.self.note : null) };
+      if (!effective) unassessed.push(h);
+      else if (effective === 'NA') { /* not applicable for this person */ }
+      else if (LVL[effective] >= req) meeting.push({ ...h, level: effective });
+      else below.push({ ...h, level: effective });
+      if (effective && effective !== 'NA' && (!best || LVL[effective] > LVL[best.level])) best = { ...h, level: effective };
+      if (discrepancy) discrepancies.push({ user_id: h.id, name: h.name, self, leader });
+    }
+    const agentsMeeting = [], agentsBelow = [];
+    let bestAgent = null;
+    for (const g of agents) {
+      const a = idx[`${s.id}:agent:${g.id}`] || {};
+      const level = a.leader ? a.leader.level : null;
+      cells[`agent:${g.id}`] = { leader: level, effective: level };
+      if (level && level !== 'NA') {
+        if (LVL[level] >= req) agentsMeeting.push({ ...g, level }); else agentsBelow.push({ ...g, level });
+        if (!bestAgent || LVL[level] > LVL[bestAgent.level]) bestAgent = { ...g, level };
+      }
+    }
+
+    let status;
+    if (meeting.length >= 2) status = 'covered';
+    else if (meeting.length === 1) status = 'single';
+    else if (agentsMeeting.length && s.delegable === 'full') status = 'ai';
+    else status = 'gap';
+
+    // Suggestions — the plan the leader can act on
+    const suggestions = [];
+    if (status === 'gap' || status === 'single') {
+      if (best && LVL[best.level] >= req && below.length)
+        suggestions.push({ type: 'pairing', text: `${firstName(best.name)} is at ${best.level}. Pair with ${below.map(b => firstName(b.name)).join(', ')} so the team doesn't depend on one person.` });
+      else if (best && LVL[best.level] >= req && unassessed.length)
+        suggestions.push({ type: 'pairing', text: `Only ${firstName(best.name)} covers this. ${unassessed.map(u => firstName(u.name)).join(', ')} haven't been assessed yet.` });
+      else if (best && LVL[best.level] < req)
+        suggestions.push({ type: 'mentoring', text: `No one reaches ${s.required_level}. ${firstName(best.name)} is closest (${best.level}) — external mentoring or training.` });
+      else if (!best)
+        suggestions.push({ type: 'hiring', text: `Nobody on the team has this skill. Train someone, or hire.` });
+    }
+    if (s.delegable === 'full') {
+      if (agentsMeeting.length) suggestions.push({ type: 'delegate', text: `${agentsMeeting[0].name} is at ${agentsMeeting[0].level}. This skill can be delegated.` });
+      else if (bestAgent) suggestions.push({ type: 'ai_training', text: `${bestAgent.name} is at ${bestAgent.level}, needs ${s.required_level}. Train the agent before delegating.` });
+      else suggestions.push({ type: 'ai_training', text: `Fully delegable, but no agent covers it yet. An AI opportunity.` });
+    } else if (s.delegable === 'partial') {
+      if (agentsMeeting.length) suggestions.push({ type: 'delegate', text: `${agentsMeeting[0].name} can do the first pass${best ? `; ${firstName(best.name)} reviews` : ''}.` });
+      else if (bestAgent) suggestions.push({ type: 'ai_training', text: `${bestAgent.name} is at ${bestAgent.level}. Train it for the first pass; humans keep the review.` });
+      else suggestions.push({ type: 'ai_training', text: `Partially delegable, but no agent covers it yet.` });
+    }
+
+    return {
+      id: s.id, name: s.name, description: s.description, required_level: s.required_level, delegable: s.delegable, position: s.position,
+      cells, status, meeting: meeting.length, below: below.length, unassessed: unassessed.length,
+      agents_meeting: agentsMeeting.length, discrepancies, suggestions,
+      plans: plans.filter(p => p.skill_id === s.id),
+    };
+  });
+
+  const summary = {
+    skills: matrix.length,
+    covered: matrix.filter(m => m.status === 'covered').length,
+    single: matrix.filter(m => m.status === 'single').length,
+    ai: matrix.filter(m => m.status === 'ai').length,
+    gap: matrix.filter(m => m.status === 'gap').length,
+    discrepancies: matrix.reduce((n, m) => n + m.discrepancies.length, 0),
+    delegable_full: matrix.filter(m => m.delegable === 'full').length,
+    delegable_partial: matrix.filter(m => m.delegable === 'partial').length,
+    delegable_ready: matrix.filter(m => m.delegable !== 'none' && m.agents_meeting > 0).length,
+    ai_opportunities: matrix.filter(m => m.delegable !== 'none' && m.agents_meeting === 0).length,
+    humans: humans.length, agents: agents.length,
+  };
+  summary.coverage = matrix.length ? Math.round(((summary.covered + summary.single + summary.ai) / matrix.length) * 100) : 0;
+  return { team, skills: matrix, humans, agents, plans, summary, tend: tendSignals(team.company_id, [team.id]) };
+}
+
+function teamSummaryRow(teamId) {
+  const m = buildTeamMatrix(teamId);
+  if (!m) return null;
+  return {
+    team: m.team, summary: m.summary,
+    gaps: m.skills.filter(s => s.status === 'gap').map(s => s.name),
+    single: m.skills.filter(s => s.status === 'single').map(s => s.name),
+    ai_ready: m.skills.filter(s => s.delegable !== 'none' && s.agents_meeting > 0).map(s => s.name),
+    ai_opportunities: m.skills.filter(s => s.delegable !== 'none' && s.agents_meeting === 0).map(s => s.name),
+    skills: m.skills.map(s => ({ name: s.name, status: s.status, delegable: s.delegable, required_level: s.required_level })),
+  };
+}
+
+function sumSummaries(rowsArr) {
+  const keys = ['skills','covered','single','ai','gap','discrepancies','delegable_full','delegable_partial','delegable_ready','ai_opportunities','humans','agents'];
+  const out = {};
+  for (const k of keys) out[k] = rowsArr.reduce((n, r) => n + (r.summary[k] || 0), 0);
+  out.coverage = out.skills ? Math.round(((out.covered + out.single + out.ai) / out.skills) * 100) : 0;
+  return out;
+}
+
+// Skills that appear in more than one team (by name) — the department/company panorama
+function skillsAcross(rowsArr) {
+  const byName = {};
+  for (const r of rowsArr) for (const s of r.skills) {
+    const k = s.name.trim().toLowerCase();
+    if (!byName[k]) byName[k] = { name: s.name, teams: 0, covered: 0, single: 0, ai: 0, gap: 0, delegable: s.delegable };
+    byName[k].teams++; byName[k][s.status]++;
+  }
+  return Object.values(byName).sort((a, b) => (b.gap + b.single) - (a.gap + a.single) || b.teams - a.teams || a.name.localeCompare(b.name));
+}
+
+// ── Reads
+app.get('/api/skills/team/:teamId', (req, res) => {
+  const m = buildTeamMatrix(req.params.teamId);
+  if (!m) return res.status(404).json({ error: 'Team not found' });
+  res.json(m);
+});
+
+app.get('/api/skills/me/:userId', (req, res) => {
+  const u = db.prepare('SELECT id, name, role, team_id FROM users WHERE id=?').get(req.params.userId);
+  if (!u) return res.status(404).json({ error: 'User not found' });
+  if (!u.team_id) return res.json({ user: u, team: null, skills: [] });
+  const m = buildTeamMatrix(u.team_id);
+  const skills = m.skills.map(s => {
+    const c = s.cells[`user:${u.id}`] || {};
+    const req_ = LVL[s.required_level];
+    let state = 'unassessed';
+    if (c.effective === 'NA') state = 'na';
+    else if (c.effective) state = LVL[c.effective] >= req_ ? 'meets' : 'below';
+    // Who could this person learn from? Someone on the team at or above required level.
+    const mentors = m.humans.filter(h => h.id !== u.id).map(h => ({ ...h, level: (s.cells[`user:${h.id}`] || {}).effective }))
+      .filter(h => h.level && h.level !== 'NA' && LVL[h.level] >= req_ && LVL[h.level] > LVL[c.effective || 'NA']).map(h => firstName(h.name));
+    return { id: s.id, name: s.name, description: s.description, required_level: s.required_level, delegable: s.delegable,
+      self: c.self || null, leader: c.leader || null, discrepancy: !!c.discrepancy, note: c.note || null, state, status: s.status, mentors };
+  });
+  const summary = {
+    skills: skills.length,
+    meets: skills.filter(s => s.state === 'meets').length,
+    below: skills.filter(s => s.state === 'below').length,
+    unassessed: skills.filter(s => s.state === 'unassessed').length,
+    discrepancies: skills.filter(s => s.discrepancy).length,
+  };
+  res.json({ user: u, team: m.team, skills, summary, tend: tendSignals(m.team.company_id, null, u.id) });
+});
+
+app.get('/api/skills/department/:deptId', (req, res) => {
+  const dept = db.prepare('SELECT d.*, c.name as company_name FROM departments d JOIN companies c ON c.id=d.company_id WHERE d.id=?').get(req.params.deptId);
+  if (!dept) return res.status(404).json({ error: 'Department not found' });
+  const teams = db.prepare('SELECT id FROM teams WHERE department_id=? ORDER BY name').all(dept.id).map(t => teamSummaryRow(t.id)).filter(Boolean);
+  res.json({ department: dept, teams, summary: sumSummaries(teams), across: skillsAcross(teams), tend: tendSignals(dept.company_id, teams.map(t => t.team.id)) });
+});
+
+app.get('/api/skills/company/:companyId', (req, res) => {
+  const company = db.prepare('SELECT * FROM companies WHERE id=?').get(req.params.companyId);
+  if (!company) return res.status(404).json({ error: 'Company not found' });
+  const departments = db.prepare('SELECT * FROM departments WHERE company_id=? ORDER BY name').all(company.id).map(d => {
+    const teams = db.prepare('SELECT id FROM teams WHERE department_id=? ORDER BY name').all(d.id).map(t => teamSummaryRow(t.id)).filter(Boolean);
+    return { department: d, teams, summary: sumSummaries(teams) };
+  });
+  const allTeams = departments.flatMap(d => d.teams);
+  res.json({ company, departments, summary: sumSummaries(allTeams), across: skillsAcross(allTeams), tend: tendSignals(company.id, allTeams.map(t => t.team.id)) });
+});
+
+// ── Skills CRUD (leader creates the skills the team needs)
+function canLead(userId, teamId) {
+  const u = db.prepare('SELECT * FROM users WHERE id=?').get(userId);
+  if (!u) return false;
+  if (u.role === 'leader') return u.team_id === parseInt(teamId);
+  if (u.role === 'head') { const t = db.prepare('SELECT department_id FROM teams WHERE id=?').get(teamId); return t && t.department_id === u.department_id; }
+  if (u.role === 'company') return true;
+  return false;
+}
+
+app.post('/api/skills', (req, res) => {
+  const { team_id, name, description, required_level, delegable, created_by } = req.body;
+  if (!team_id || !name || !name.trim()) return res.status(400).json({ error: 'Team and skill name required' });
+  if (!canLead(created_by, team_id)) return res.status(403).json({ error: 'Only the team leader can create skills' });
+  const pos = db.prepare('SELECT COALESCE(MAX(position),-1)+1 as p FROM skills WHERE team_id=?').get(team_id).p;
+  try {
+    const r = db.prepare('INSERT INTO skills (team_id,name,description,required_level,delegable,position,created_by) VALUES (?,?,?,?,?,?,?)')
+      .run(team_id, name.trim(), (description || '').trim() || null, required_level || 'I', delegable || 'none', pos, created_by);
+    res.json(db.prepare('SELECT * FROM skills WHERE id=?').get(r.lastInsertRowid));
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.put('/api/skills/:id', (req, res) => {
+  const s = db.prepare('SELECT * FROM skills WHERE id=?').get(req.params.id);
+  if (!s) return res.status(404).json({ error: 'Skill not found' });
+  const { name, description, required_level, delegable, user_id } = req.body;
+  if (!canLead(user_id, s.team_id)) return res.status(403).json({ error: 'Only the team leader can edit skills' });
+  try {
+    db.prepare('UPDATE skills SET name=?, description=?, required_level=?, delegable=? WHERE id=?')
+      .run((name || s.name).trim(), description !== undefined ? ((description || '').trim() || null) : s.description, required_level || s.required_level, delegable || s.delegable, s.id);
+    res.json(db.prepare('SELECT * FROM skills WHERE id=?').get(s.id));
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.delete('/api/skills/:id', (req, res) => {
+  const s = db.prepare('SELECT * FROM skills WHERE id=?').get(req.params.id);
+  if (!s) return res.status(404).json({ error: 'Skill not found' });
+  if (!canLead(req.body.user_id, s.team_id)) return res.status(403).json({ error: 'Only the team leader can delete skills' });
+  db.prepare('DELETE FROM skills WHERE id=?').run(s.id);
+  res.json({ ok: true });
+});
+
+// ── AI agents are team members too
+app.post('/api/skill-agents', (req, res) => {
+  const { team_id, name, description, created_by } = req.body;
+  if (!team_id || !name || !name.trim()) return res.status(400).json({ error: 'Team and agent name required' });
+  if (!canLead(created_by, team_id)) return res.status(403).json({ error: 'Only the team leader can add agents' });
+  const r = db.prepare('INSERT INTO ai_agents (team_id,name,description,created_by) VALUES (?,?,?,?)').run(team_id, name.trim(), (description || '').trim() || null, created_by);
+  res.json(db.prepare('SELECT * FROM ai_agents WHERE id=?').get(r.lastInsertRowid));
+});
+
+app.put('/api/skill-agents/:id', (req, res) => {
+  const g = db.prepare('SELECT * FROM ai_agents WHERE id=?').get(req.params.id);
+  if (!g) return res.status(404).json({ error: 'Agent not found' });
+  if (!canLead(req.body.user_id, g.team_id)) return res.status(403).json({ error: 'Only the team leader can edit agents' });
+  db.prepare('UPDATE ai_agents SET name=?, description=? WHERE id=?').run((req.body.name || g.name).trim(), req.body.description !== undefined ? ((req.body.description || '').trim() || null) : g.description, g.id);
+  res.json(db.prepare('SELECT * FROM ai_agents WHERE id=?').get(g.id));
+});
+
+app.delete('/api/skill-agents/:id', (req, res) => {
+  const g = db.prepare('SELECT * FROM ai_agents WHERE id=?').get(req.params.id);
+  if (!g) return res.status(404).json({ error: 'Agent not found' });
+  if (!canLead(req.body.user_id, g.team_id)) return res.status(403).json({ error: 'Only the team leader can remove agents' });
+  db.prepare("DELETE FROM skill_assessments WHERE subject_type='agent' AND subject_id=?").run(g.id);
+  db.prepare('DELETE FROM ai_agents WHERE id=?').run(g.id);
+  res.json({ ok: true });
+});
+
+// ── Assessments: self (the person) or leader (the leader's view). Both are kept — the difference goes to the 1:1.
+app.put('/api/skill-assessments', (req, res) => {
+  const { skill_id, subject_type, subject_id, source, level, note, assessed_by } = req.body;
+  if (!skill_id || !subject_type || !subject_id || !source) return res.status(400).json({ error: 'Missing fields' });
+  const s = db.prepare('SELECT * FROM skills WHERE id=?').get(skill_id);
+  if (!s) return res.status(404).json({ error: 'Skill not found' });
+  if (source === 'self') {
+    if (subject_type !== 'user' || parseInt(subject_id) !== parseInt(assessed_by)) return res.status(403).json({ error: 'Self-assessment must be your own' });
+  } else if (source === 'leader') {
+    if (!canLead(assessed_by, s.team_id)) return res.status(403).json({ error: 'Only the team leader can assess others' });
+  } else return res.status(400).json({ error: 'Invalid source' });
+  if (!level) {
+    db.prepare('DELETE FROM skill_assessments WHERE skill_id=? AND subject_type=? AND subject_id=? AND source=?').run(skill_id, subject_type, subject_id, source);
+    return res.json({ ok: true, cleared: true });
+  }
+  if (!['B','I','M','NA'].includes(level)) return res.status(400).json({ error: 'Invalid level' });
+  db.prepare(`INSERT INTO skill_assessments (skill_id,subject_type,subject_id,source,level,note,assessed_by,assessed_at)
+    VALUES (?,?,?,?,?,?,?,datetime('now'))
+    ON CONFLICT(skill_id,subject_type,subject_id,source) DO UPDATE SET level=excluded.level, note=excluded.note, assessed_by=excluded.assessed_by, assessed_at=excluded.assessed_at`)
+    .run(skill_id, subject_type, subject_id, source, level, (note || '').trim() || null, assessed_by);
+  res.json({ ok: true });
+});
+
+// ── Development plans — pairing, mentoring, training, hiring, AI training, delegation
+app.post('/api/skill-plans', (req, res) => {
+  const { skill_id, action_type, description, created_by } = req.body;
+  const s = db.prepare('SELECT * FROM skills WHERE id=?').get(skill_id);
+  if (!s) return res.status(404).json({ error: 'Skill not found' });
+  if (!canLead(created_by, s.team_id)) return res.status(403).json({ error: 'Only the team leader can create plans' });
+  if (!description || !description.trim()) return res.status(400).json({ error: 'Describe the plan' });
+  try {
+    const r = db.prepare('INSERT INTO skill_plans (skill_id,action_type,description,created_by) VALUES (?,?,?,?)').run(skill_id, action_type || 'training', description.trim(), created_by);
+    res.json(db.prepare('SELECT * FROM skill_plans WHERE id=?').get(r.lastInsertRowid));
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.put('/api/skill-plans/:id', (req, res) => {
+  const p = db.prepare('SELECT p.*, s.team_id FROM skill_plans p JOIN skills s ON s.id=p.skill_id WHERE p.id=?').get(req.params.id);
+  if (!p) return res.status(404).json({ error: 'Plan not found' });
+  if (!canLead(req.body.user_id, p.team_id)) return res.status(403).json({ error: 'Only the team leader can edit plans' });
+  const { status, description, action_type } = req.body;
+  try {
+    db.prepare('UPDATE skill_plans SET status=?, description=?, action_type=? WHERE id=?').run(status || p.status, (description || p.description).trim(), action_type || p.action_type, p.id);
+    res.json(db.prepare('SELECT * FROM skill_plans WHERE id=?').get(p.id));
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.delete('/api/skill-plans/:id', (req, res) => {
+  const p = db.prepare('SELECT p.*, s.team_id FROM skill_plans p JOIN skills s ON s.id=p.skill_id WHERE p.id=?').get(req.params.id);
+  if (!p) return res.status(404).json({ error: 'Plan not found' });
+  if (!canLead(req.body.user_id, p.team_id)) return res.status(403).json({ error: 'Only the team leader can delete plans' });
+  db.prepare('DELETE FROM skill_plans WHERE id=?').run(p.id);
+  res.json({ ok: true });
+});
+
+// ── Pages ──────────────────────────────────────
+const page = f => (_, res) => res.sendFile(path.join(__dirname, 'public', f));
+app.get(['/', '/hub'], page('hub.html'));
+app.get('/tend', page('index.html'));
+app.get('/skills', page('skills.html'));
+
+// Fallback → Hub
+app.get('*', page('hub.html'));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`\n  Tend — The Shapeless Team\n  http://localhost:${PORT}\n`));
+app.listen(PORT, () => console.log(`\n  Shapeless Hub — The Shapeless Team\n  Hub    http://localhost:${PORT}/\n  Tend   http://localhost:${PORT}/tend\n  Skills http://localhost:${PORT}/skills\n`));

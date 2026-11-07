@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skills Matrix</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f1117;--bg2:#1a1d27;--bg3:#242834;--fg:#e8e9ed;--fg2:#9ca3af;--accent:#7c6aef;--accent2:#a78bfa;--green:#34d399;--yellow:#fbbf24;--red:#f87171;--orange:#fb923c;--blue:#60a5fa;--border:#2d3140;color-scheme:dark}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--fg);min-height:100vh}
+h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
+.container{max-width:1000px;margin:0 auto;padding:16px 24px;padding-bottom:100px}
+.hidden{display:none!important}
+.card{background:var(--bg2);border-radius:16px;padding:24px;margin-bottom:16px;border:1px solid var(--border)}
+.card h2{font-size:1.3rem;margin-bottom:12px}
+.card h3{font-size:1.1rem;margin-bottom:8px}
+.muted{color:var(--fg2)}
+.small{font-size:.85rem}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 24px;border-radius:12px;border:none;font-size:1rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit;text-decoration:none}
+.btn-primary{background:var(--accent);color:#fff;width:100%}
+.btn-primary:hover{background:var(--accent2)}
+.btn-secondary{background:var(--bg3);color:var(--fg);width:100%}
+.btn-secondary:hover{background:var(--border)}
+.btn-sm{padding:8px 14px;border-radius:10px;font-size:.85rem;font-weight:600;border:none;cursor:pointer;font-family:inherit;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn-add{background:var(--accent);color:#fff}.btn-add:hover{background:var(--accent2)}
+.btn-ghost{background:var(--bg3);color:var(--fg)}.btn-ghost:hover{background:var(--border)}
+.btn-danger{background:rgba(248,113,113,.15);color:var(--red)}.btn-danger:hover{background:rgba(248,113,113,.25)}
+.btn-link{background:none;border:none;color:var(--accent);font-size:.85rem;cursor:pointer;font-family:inherit;padding:4px 0;font-weight:600}
+.btn-link:hover{text-decoration:underline}
+.input-group{margin-bottom:16px}
+.input-group label{display:block;font-size:.85rem;color:var(--fg2);margin-bottom:6px;font-weight:500}
+.input-group input,.input-group select,.input-group textarea{width:100%;padding:12px 16px;border-radius:12px;border:1px solid var(--border);background:var(--bg3);color:var(--fg);font-size:1rem;font-family:inherit;outline:none}
+.input-group textarea{min-height:80px;resize:vertical}
+.input-group input:focus,.input-group select:focus,.input-group textarea:focus{border-color:var(--accent)}
+.help{font-size:.78rem;color:var(--fg2);margin-top:6px;line-height:1.4}
+.nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:8px 0 max(8px,env(safe-area-inset-bottom,0));z-index:100}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 12px;color:var(--fg2);font-size:.7rem;font-weight:500;cursor:pointer;border:none;background:none;font-family:inherit;transition:color .2s}
+.nav-item.active{color:var(--accent)}
+.nav-item svg{width:22px;height:22px}
+.login-header{text-align:center;margin-bottom:32px;margin-top:40px}
+.login-header h1{font-size:2rem;margin-bottom:8px}
+.login-header p{color:var(--fg2)}
+.error-msg{background:rgba(248,113,113,.15);color:var(--red);padding:12px 16px;border-radius:10px;margin-bottom:16px;font-size:.9rem}
+.ok-msg{background:rgba(52,211,153,.15);color:var(--green);padding:12px 16px;border-radius:10px;margin-bottom:16px;font-size:.9rem}
+.tabs{display:flex;gap:4px;margin-bottom:20px;overflow-x:auto}
+.tab{padding:8px 16px;border-radius:8px;background:var(--bg3);border:none;color:var(--fg2);font-size:.85rem;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit;transition:all .2s}
+.tab.active{background:var(--accent);color:#fff}
+.page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.page-head h2{font-size:1.6rem;margin-bottom:2px}
+.page-head .actions{display:flex;gap:8px;flex-wrap:wrap}
+.back-btn{display:inline-flex;align-items:center;gap:4px;background:none;border:none;color:var(--accent);font-size:.9rem;cursor:pointer;font-family:inherit;padding:4px 0;margin-bottom:12px}
+.back-btn:hover{text-decoration:underline}
+.role-tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:600;background:var(--bg3);color:var(--accent);margin-bottom:4px}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:600;white-space:nowrap}
+.b-covered{background:rgba(52,211,153,.15);color:var(--green)}
+.b-single{background:rgba(251,191,36,.15);color:var(--yellow)}
+.b-ai{background:rgba(96,165,250,.15);color:var(--blue)}
+.b-gap{background:rgba(248,113,113,.15);color:var(--red)}
+.b-neutral{background:var(--bg3);color:var(--fg2)}
+.b-accent{background:rgba(124,106,239,.18);color:var(--accent2)}
+/* tiles */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px}
+.tile{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.tile .n{font-size:1.6rem;font-weight:700;line-height:1.1;font-family:'DM Serif Display',serif}
+.tile .l{font-size:.75rem;color:var(--fg2);margin-top:4px}
+.t-green .n{color:var(--green)}.t-yellow .n{color:var(--yellow)}.t-red .n{color:var(--red)}.t-blue .n{color:var(--blue)}.t-accent .n{color:var(--accent2)}
+/* matrix */
+.mx-wrap{overflow-x:auto;margin-top:8px;-webkit-overflow-scrolling:touch}
+.mx{border-collapse:separate;border-spacing:3px;min-width:100%}
+.mx th{font-size:.7rem;color:var(--fg2);font-weight:500;padding:6px 4px;text-align:center;white-space:nowrap;vertical-align:bottom}
+.mx th.ai{color:var(--blue)}
+.mx th .tag{display:block;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;opacity:.8}
+.mx td{text-align:center;padding:0;border-radius:8px;font-size:.85rem;font-weight:600;min-width:44px}
+.mx td.skill{text-align:left;padding:6px 8px 6px 0;white-space:nowrap;min-width:160px;position:sticky;left:0;background:var(--bg2);z-index:1}
+.mx .skill-name{background:none;border:none;color:var(--fg);font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer;text-align:left;padding:0}
+.mx .skill-name:hover{color:var(--accent2);text-decoration:underline;text-decoration-style:dotted}
+.mx .skill-name.ro{cursor:default}.mx .skill-name.ro:hover{color:var(--fg);text-decoration:none}
+.mx td.req{color:var(--fg2);font-weight:700}
+.mx td.del{color:var(--fg2);font-size:1rem}
+.mx td.status{padding:0 4px}
+.cell{width:100%;height:40px;border-radius:8px;border:none;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;position:relative;transition:transform .1s;display:flex;align-items:center;justify-content:center}
+.cell:active{transform:scale(.96)}
+.cell.ro{cursor:default}
+.c-meet{background:#166534;color:#bbf7d0}
+.c-over{background:#14532d;color:#86efac}
+.c-below{background:#92400e;color:#fde68a}
+.c-far{background:#991b1b;color:#fecaca}
+.c-na{background:var(--bg3);color:var(--fg2)}
+.c-empty{background:transparent;border:1px dashed var(--border);color:var(--fg2);font-weight:400}
+.cell .disc{position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px rgba(0,0,0,.35)}
+.legend{display:flex;flex-wrap:wrap;gap:12px 18px;font-size:.75rem;color:var(--fg2);margin-top:14px;line-height:1.5}
+.legend .sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px}
+.dg{display:inline-block;width:10px;height:10px;border-radius:50%;border:1.5px solid currentColor;vertical-align:-1px;box-sizing:border-box;flex-shrink:0}
+.dg-full{background:currentColor}
+.dg-half{background:linear-gradient(90deg,currentColor 50%,transparent 50%)}
+.legend .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#fff;margin-right:6px;vertical-align:1px}
+/* lists */
+.sec{margin-bottom:22px}
+.sec-title{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;padding:6px 12px;border-radius:6px;display:flex;justify-content:space-between;align-items:center}
+.item{padding:14px 0;border-bottom:1px solid var(--border)}
+.item:last-child{border-bottom:none}
+.item-row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.item-name{font-weight:600}
+.item-meta{font-size:.8rem;color:var(--fg2);margin-top:2px}
+.sug{display:flex;gap:10px;align-items:flex-start;margin-top:8px;font-size:.85rem;line-height:1.45;color:var(--fg)}
+.sug .k{flex-shrink:0;margin-top:1px}
+.sug .t{flex:1;min-width:0}
+.sug .add{flex-shrink:0}
+.lvl-row{display:flex;gap:6px}
+.lvl-btn{width:44px;height:40px;border-radius:10px;border:2px solid var(--border);background:var(--bg3);color:var(--fg);font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
+.lvl-btn.sel{border-color:var(--accent);background:var(--accent);color:#fff}
+.lvl-btn:hover{border-color:var(--accent2)}
+.bar{height:6px;background:var(--bg3);border-radius:6px;overflow:hidden;margin-top:8px}
+.bar>div{height:100%;border-radius:6px}
+.team-card{cursor:pointer;transition:border-color .2s}
+.team-card:hover{border-color:var(--accent)}
+.tend-strip{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:rgba(124,106,239,.08);border:1px solid rgba(124,106,239,.25);border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:.85rem}
+.tend-strip .lbl{font-weight:700;color:var(--accent2);white-space:nowrap}
+.tend-strip .v{display:inline-flex;gap:6px;align-items:baseline}
+.tend-strip .v b{font-size:1.05rem}
+.tend-strip .note{flex-basis:100%;color:var(--fg2);font-size:.78rem;line-height:1.4}
+.s-high{color:var(--green)}.s-mid{color:var(--yellow)}.s-low{color:var(--red)}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{flex:1;min-width:90px;padding:10px 8px;border-radius:10px;border:2px solid var(--border);background:var(--bg3);color:var(--fg);font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer;text-align:center;line-height:1.3}
+.seg button small{display:block;font-weight:400;color:var(--fg2);font-size:.72rem}
+.seg button.sel{border-color:var(--accent);background:rgba(124,106,239,.2)}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto}
+.modal h3{margin-bottom:6px}
+.modal-btns{display:flex;gap:8px;margin-top:16px}
+.modal-btns .btn{flex:1}
+.empty-state{text-align:center;padding:32px 16px;color:var(--fg2)}
+.empty-state p{margin-bottom:8px}
+.avatar{width:72px;height:72px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:700;color:#fff;margin:0 auto 16px}
+.profile-name{text-align:center;font-size:1.4rem;margin-bottom:4px}
+.profile-meta{text-align:center;color:var(--fg2);font-size:.9rem;margin-bottom:24px}
+.me-skill{padding:16px 0;border-bottom:1px solid var(--border)}
+.me-skill:last-child{border-bottom:none}
+.me-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.me-notes{font-size:.82rem;color:var(--fg2);margin-top:8px;line-height:1.5}
+.me-notes .warn{color:var(--yellow)}
+.me-notes .grow{color:var(--accent2)}
+.hint{font-size:.82rem;color:var(--fg2);line-height:1.5}
+@media(min-width:768px){.container{padding:24px 32px;padding-bottom:80px}.card{padding:28px}.nav{max-width:1000px;left:50%;transform:translateX(-50%);border-radius:16px 16px 0 0;border:1px solid var(--border);border-bottom:none}.login-header h1{font-size:2.4rem}.mx td{min-width:52px}.cell{height:42px}}
+@media(max-width:480px){.container{padding:12px;padding-bottom:90px}.card{padding:16px;margin-bottom:12px}.mx td.skill{min-width:130px;font-size:.8rem}.cell{height:36px;font-size:.8rem}.mx td{min-width:38px}.modal{padding:16px;margin:8px}.page-head h2{font-size:1.35rem}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen" class="container">
+  <div class="login-header">
+    <h1>Skills Matrix</h1>
+    <p>Map skills across humans and AI agents</p>
+    <p style="margin-top:8px;font-size:.8rem"><a href="/hub" style="color:var(--accent);text-decoration:none">← Shapeless Hub</a></p>
+  </div>
+  <div class="card">
+    <h2>Sign In</h2>
+    <p class="hint" style="margin-bottom:14px">Same login as Tend. Same database, so the two tools can be read together.</p>
+    <div id="loginError" class="error-msg hidden"></div>
+    <div class="input-group"><label>Username</label><input type="text" id="loginUser" placeholder="e.g. felipe" autocomplete="username" autocapitalize="none"></div>
+    <div class="input-group"><label>Password</label><input type="password" id="loginPwd" placeholder="••••" autocomplete="current-password"></div>
+    <button class="btn btn-primary" onclick="doLogin()">Sign In</button>
+    <p class="hint" style="margin-top:14px;text-align:center">No account yet? Register in <a href="/tend" style="color:var(--accent)">Tend</a> — it works here too.</p>
+  </div>
+</div>
+
+<!-- HOME -->
+<div id="homeScreen" class="container hidden">
+  <div class="page-head"><div><span class="role-tag" id="homeRole"></span><h2 id="homeGreeting"></h2><p class="muted small" id="homeSub"></p></div></div>
+  <div id="homeContent"></div>
+</div>
+
+<!-- TEAM (matrix / panorama / plans) -->
+<div id="teamScreen" class="container hidden">
+  <button class="back-btn hidden" id="teamBack" onclick="closeDrill()">← Back</button>
+  <div class="page-head">
+    <div><span class="role-tag" id="teamDept"></span><h2 id="teamTitle"></h2><p class="muted small" id="teamSub"></p></div>
+    <div class="actions" id="teamActions"></div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="matrix" onclick="setTeamTab('matrix')">Matrix</button>
+    <button class="tab" data-tab="panorama" onclick="setTeamTab('panorama')">Panorama</button>
+    <button class="tab" data-tab="plans" onclick="setTeamTab('plans')">1:1s &amp; Plans</button>
+  </div>
+  <div id="teamContent"></div>
+</div>
+
+<!-- ME (self-assessment) -->
+<div id="meScreen" class="container hidden">
+  <div class="page-head"><div><h2>My skills</h2><p class="muted small" id="meSub"></p></div></div>
+  <div id="meContent"></div>
+</div>
+
+<!-- PROFILE -->
+<div id="profileScreen" class="container hidden">
+  <div id="profileContent"></div>
+</div>
+
+<div class="modal-overlay hidden" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modalBox"></div>
+</div>
+
+<div class="nav hidden" id="mainNav">
+  <button class="nav-item" data-screen="home" onclick="navigate('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Home
+  </button>
+  <button class="nav-item" data-screen="team" id="navTeam" onclick="navigate('team')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>Team
+  </button>
+  <button class="nav-item" data-screen="me" id="navMe" onclick="navigate('me')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20l9-5-9-5-9 5 9 5z"/><path d="M12 12l9-5-9-5-9 5 9 5z"/></svg>My skills
+  </button>
+  <button class="nav-item" data-screen="profile" onclick="navigate('profile')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile
+  </button>
+</div>
+
+<script>
+const API='';
+let U=null, D=null, drill=null, teamTab='matrix';
+const LVL={NA:0,B:1,I:2,M:3};
+const LEVEL_LABEL={B:'Beginner',I:'Intermediate',M:'Master',NA:'Not applicable'};
+const DEL={full:['full','Fully delegable','AI can do it on its own'],partial:['half','Partially delegable','AI does the first pass, a human reviews'],none:['none','Not delegable','Stays human']};
+const dg=d=>'<span class="dg dg-'+DEL[d][0]+'"></span>';
+const STATUS={covered:['Covered','b-covered'],single:['1 person','b-single'],ai:['Covered by AI','b-ai'],gap:['Gap','b-gap']};
+const ACTION={pairing:'Pairing',mentoring:'Mentoring',training:'Training',hiring:'Hiring',ai_training:'Train the AI',delegate:'Delegate to AI'};
+const PLAN_STATUS={planned:'Planned',in_progress:'In progress',done:'Done'};
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const first=n=>(n||'').split(' ')[0];
+const scoreClass=v=>v>=4?'s-high':v>=3?'s-mid':'s-low';
+
+async function api(url,opts){const res=await fetch(API+url,opts);const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.error||'Request failed');return data}
+const post=(url,body,method='POST')=>api(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+function showError(id,msg){const e=document.getElementById(id);e.textContent=msg;e.classList.remove('hidden')}
+function closeModal(){document.getElementById('modalOverlay').classList.add('hidden')}
+function openModal(html){document.getElementById('modalBox').innerHTML=html;document.getElementById('modalOverlay').classList.remove('hidden')}
+function navigate(s){
+  document.querySelectorAll('.container').forEach(c=>c.classList.add('hidden'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById(s+'Screen').classList.remove('hidden');
+  const nav=document.querySelector('.nav-item[data-screen="'+s+'"]');if(nav)nav.classList.add('active');
+  window.scrollTo(0,0);
+  if(s==='home')loadHome();
+  if(s==='team')loadTeam();
+  if(s==='me')loadMe();
+  if(s==='profile')loadProfile();
+}
+
+// ── AUTH (shared with Tend through sessionStorage) ──
+async function doLogin(){
+  const username=document.getElementById('loginUser').value.trim(),password=document.getElementById('loginPwd').value;
+  if(!username||!password){showError('loginError','Please enter username and password.');return}
+  try{U=await post('/api/login',{username,password});enterApp()}
+  catch(e){showError('loginError',e.message==='Request failed'?'Connection error. Is the server running?':e.message)}
+}
+function enterApp(){
+  try{sessionStorage.setItem('shapeless_user',JSON.stringify(U))}catch(e){}
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('mainNav').classList.remove('hidden');
+  document.getElementById('navTeam').style.display=(U.role==='leader')?'':'none';
+  document.getElementById('navMe').style.display=(U.role==='member'||U.role==='leader')?'':'none';
+  drill=null;navigate('home');
+}
+function logout(){
+  try{sessionStorage.removeItem('shapeless_user')}catch(e){}
+  U=null;D=null;drill=null;
+  document.getElementById('mainNav').classList.add('hidden');
+  document.querySelectorAll('.container').forEach(c=>c.classList.add('hidden'));
+  document.getElementById('loginScreen').classList.remove('hidden');
+}
+
+// ── Shared pieces ──
+function tendStrip(t,scopeNote){
+  if(!t||!t.values||!t.values.length)return '';
+  const vals=t.values.map(v=>'<span class="v"><span class="muted">'+esc(v.name)+'</span><b class="'+scoreClass(v.avg)+'">'+v.avg+'</b></span>').join('');
+  const n=t.values[0].n;
+  return '<div class="tend-strip"><span class="lbl">From Tend · '+esc(t.cycle)+'</span>'+vals+(n>1?'<span class="muted small">'+n+' people</span>':'')+'<span class="note">'+(scopeNote||'Same people, same month. Growth, Autonomy and Craft are the three values that move when skills and delegation change.')+'</span></div>';
+}
+function tiles(s){
+  return '<div class="tiles">'+
+    '<div class="tile '+(s.coverage>=80?'t-green':s.coverage>=50?'t-yellow':'t-red')+'"><div class="n">'+s.coverage+'%</div><div class="l">coverage · '+s.skills+' skills</div></div>'+
+    '<div class="tile t-red"><div class="n">'+s.gap+'</div><div class="l">gaps</div></div>'+
+    '<div class="tile t-yellow"><div class="n">'+s.single+'</div><div class="l">depend on one person</div></div>'+
+    '<div class="tile t-blue"><div class="n">'+s.delegable_ready+'</div><div class="l">ready to delegate to AI</div></div>'+
+    '<div class="tile t-accent"><div class="n">'+s.ai_opportunities+'</div><div class="l">AI opportunities</div></div>'+
+    '<div class="tile"><div class="n">'+s.discrepancies+'</div><div class="l">views to align in 1:1s</div></div>'+
+  '</div>';
+}
+function statusBadge(st){const x=STATUS[st]||['?','b-neutral'];return '<span class="badge '+x[1]+'">'+x[0]+'</span>'}
+function delBadge(d){return '<span class="badge b-neutral" title="'+DEL[d][2]+'">'+dg(d)+' '+DEL[d][1]+'</span>'}
+function cellClass(level,req){
+  if(!level)return 'c-empty';if(level==='NA')return 'c-na';
+  const diff=LVL[level]-LVL[req];
+  if(diff>0)return 'c-over';if(diff===0)return 'c-meet';if(diff===-1)return 'c-below';return 'c-far';
+}
+function cellText(level){return !level?'·':level==='NA'?'—':level}
+function coverageBar(s){return '<div class="bar"><div style="width:'+s.coverage+'%;background:'+(s.coverage>=80?'var(--green)':s.coverage>=50?'var(--yellow)':'var(--red)')+'"></div></div>'}
+
+// ── HOME ──
+async function loadHome(){
+  const roleLbl={member:'Team Member',leader:'Team Leader',head:'Department Head',company:'Company'}[U.role];
+  document.getElementById('homeRole').textContent=roleLbl;
+  document.getElementById('homeGreeting').textContent='Hello, '+first(U.name);
+  let sub=[U.team_name,U.department_name,U.company_name].filter(Boolean).join(' · ');
+  document.getElementById('homeSub').textContent=sub;
+  const el=document.getElementById('homeContent');el.innerHTML='<p class="muted">Loading…</p>';
+  try{
+    if(U.role==='member')await homeMember(el);
+    else if(U.role==='leader')await homeLeader(el);
+    else if(U.role==='head')await homeHead(el);
+    else await homeCompany(el);
+  }catch(e){el.innerHTML='<div class="error-msg">'+esc(e.message)+'</div>'}
+}
+async function homeMember(el){
+  const d=await api('/api/skills/me/'+U.id);
+  if(!d.team){el.innerHTML='<div class="card"><div class="empty-state"><p>You are not on a team yet.</p></div></div>';return}
+  const s=d.summary;
+  let html='<div class="card"><h3>Your skills in '+esc(d.team.name)+'</h3>';
+  if(!s.skills)html+='<p class="muted small">Your leader hasn\'t listed the team\'s skills yet.</p>';
+  else{
+    html+='<div class="tiles" style="margin-bottom:12px"><div class="tile t-green"><div class="n">'+s.meets+'</div><div class="l">at the level the team needs</div></div><div class="tile t-yellow"><div class="n">'+s.below+'</div><div class="l">to grow</div></div><div class="tile"><div class="n">'+s.unassessed+'</div><div class="l">not assessed yet</div></div></div>';
+    if(s.discrepancies)html+='<p class="small" style="color:var(--yellow);margin-bottom:10px">'+s.discrepancies+' skill'+(s.discrepancies>1?'s':'')+' where you and your leader see different levels. Worth bringing to your 1:1.</p>';
+    html+='<button class="btn btn-primary" onclick="navigate(\'me\')">'+(s.unassessed?'Assess my skills':'Review my skills')+'</button>';
+  }
+  html+='</div>';
+  html+=tendStrip(d.tend,'Your own answers in Tend this month. Low Growth next to skills marked "to grow" is a good 1:1 topic.');
+  html+='<div class="card"><h3>How it works</h3><p class="hint">Your leader lists the skills the team needs and the level each one requires. You assess yourself. Your leader assesses too. When the two views differ, nobody is wrong — it\'s a conversation for the 1:1. Gaps become a development plan: pairing, mentoring, training — or delegating to an AI agent when the skill allows it.</p></div>';
+  el.innerHTML=html;
+}
+async function homeLeader(el){
+  const d=await api('/api/skills/team/'+U.team_id);D=d;
+  const s=d.summary;
+  let html='';
+  if(!s.skills){
+    html+='<div class="card"><h3>Start the matrix</h3><p class="hint" style="margin-bottom:14px">List the skills your team needs to do its work, the level each one requires, and whether an AI agent could take it on. Then ask the team to self-assess.</p><button class="btn btn-primary" onclick="navigate(\'team\')">Create the first skill</button></div>';
+  }else{
+    html+=tiles(s);
+    html+=tendStrip(d.tend);
+    const gaps=d.skills.filter(x=>x.status==='gap'),single=d.skills.filter(x=>x.status==='single');
+    html+='<div class="card"><h3>What needs attention</h3>';
+    if(!gaps.length&&!single.length)html+='<p class="muted small">Every skill is covered by at least two people. Keep the matrix current.</p>';
+    gaps.forEach(x=>{html+='<div class="item"><div class="item-row"><span class="item-name">'+esc(x.name)+'</span>'+statusBadge('gap')+'</div>'+(x.suggestions[0]?'<div class="item-meta">'+esc(x.suggestions[0].text)+'</div>':'')+'</div>'});
+    single.forEach(x=>{html+='<div class="item"><div class="item-row"><span class="item-name">'+esc(x.name)+'</span>'+statusBadge('single')+'</div>'+(x.suggestions[0]?'<div class="item-meta">'+esc(x.suggestions[0].text)+'</div>':'')+'</div>'});
+    html+='<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><button class="btn-sm btn-add" onclick="openTeamTab(\'panorama\')">Panorama</button><button class="btn-sm btn-ghost" onclick="openTeamTab(\'matrix\')">Open the matrix</button></div></div>';
+    if(s.discrepancies){
+      html+='<div class="card"><h3>For your 1:1s</h3><p class="hint" style="margin-bottom:8px">'+s.discrepancies+' skill'+(s.discrepancies>1?'s':'')+' where the person\'s view and yours differ. Nobody is wrong — talk, then update the matrix.</p><button class="btn-sm btn-ghost" onclick="openTeamTab(\'plans\')">See the list</button></div>';
+    }
+    const ready=d.skills.filter(x=>x.delegable!=='none'&&x.agents_meeting>0),opp=d.skills.filter(x=>x.delegable!=='none'&&x.agents_meeting===0);
+    html+='<div class="card"><h3>AI on the team</h3>';
+    html+='<p class="hint" style="margin-bottom:10px">'+d.agents.length+' agent'+(d.agents.length!==1?'s':'')+' · '+ready.length+' skill'+(ready.length!==1?'s':'')+' ready to delegate · '+opp.length+' opportunit'+(opp.length!==1?'ies':'y')+' with no agent yet.</p>';
+    if(ready.length)html+='<p class="small"><b>Ready:</b> '+ready.map(x=>esc(x.name)).join(', ')+'</p>';
+    if(opp.length)html+='<p class="small" style="margin-top:4px"><b>Opportunities:</b> '+opp.map(x=>esc(x.name)).join(', ')+'</p>';
+    html+='</div>';
+  }
+  el.innerHTML=html;
+}
+function teamCard(t){
+  const s=t.summary;
+  return '<div class="card team-card" onclick="openDrill('+t.team.id+')"><div class="item-row"><div><div class="item-name" style="font-size:1.05rem">'+esc(t.team.name)+'</div><div class="item-meta">'+s.skills+' skills · '+s.humans+' people · '+s.agents+' AI agent'+(s.agents!==1?'s':'')+'</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'+(s.gap?'<span class="badge b-gap">'+s.gap+' gap'+(s.gap>1?'s':'')+'</span>':'')+(s.single?'<span class="badge b-single">'+s.single+' on one person</span>':'')+(s.ai_opportunities?'<span class="badge b-accent">'+s.ai_opportunities+' AI opp.</span>':'')+(!s.gap&&!s.single?'<span class="badge b-covered">Covered</span>':'')+'</div></div>'+coverageBar(s)+
+    (t.gaps.length?'<div class="item-meta" style="margin-top:8px"><span style="color:var(--red)">Gaps:</span> '+t.gaps.map(esc).join(', ')+'</div>':'')+
+    (t.single.length?'<div class="item-meta"><span style="color:var(--yellow)">One person:</span> '+t.single.map(esc).join(', ')+'</div>':'')+
+    (t.ai_opportunities.length?'<div class="item-meta"><span style="color:var(--accent2)">No agent yet:</span> '+t.ai_opportunities.map(esc).join(', ')+'</div>':'')+
+  '</div>';
+}
+function acrossList(across){
+  const hot=across.filter(a=>a.gap||a.single);
+  if(!hot.length)return '';
+  let html='<div class="card"><h3>Skills to watch</h3><p class="hint" style="margin-bottom:8px">Every skill that is a gap or depends on one person. When the same skill shows up in more than one team, a pairing across teams is possible.</p>';
+  hot.slice(0,12).forEach(a=>{html+='<div class="item"><div class="item-row"><span class="item-name">'+esc(a.name)+(a.teams>1?' <span class="muted small">· '+a.teams+' teams</span>':'')+'</span><span>'+(a.gap?'<span class="badge b-gap">'+a.gap+' gap</span> ':'')+(a.single?'<span class="badge b-single">'+a.single+' on one person</span> ':'')+(a.covered?'<span class="badge b-covered">'+a.covered+' covered</span>':'')+'</span></div></div>'});
+  return html+'</div>';
+}
+async function homeHead(el){
+  const d=await api('/api/skills/department/'+U.department_id);
+  let html=tiles(d.summary)+tendStrip(d.tend,'Department average in Tend this month, same people as the matrices below.');
+  html+='<h3 style="margin:4px 0 10px">Teams</h3>';
+  if(!d.teams.length)html+='<div class="card"><div class="empty-state"><p>No teams in this department yet.</p></div></div>';
+  d.teams.forEach(t=>html+=teamCard(t));
+  html+=acrossList(d.across);
+  el.innerHTML=html;
+}
+async function homeCompany(el){
+  const d=await api('/api/skills/company/'+U.company_id);
+  let html=tiles(d.summary)+tendStrip(d.tend,'Company average in Tend this month.');
+  d.departments.forEach(dep=>{
+    const s=dep.summary;
+    html+='<div class="card"><div class="item-row"><div><h3 style="margin:0">'+esc(dep.department.name)+'</h3><div class="item-meta">'+dep.teams.length+' team'+(dep.teams.length!==1?'s':'')+' · '+s.skills+' skills · '+s.coverage+'% covered</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'+(s.gap?'<span class="badge b-gap">'+s.gap+' gap'+(s.gap>1?'s':'')+'</span>':'')+(s.single?'<span class="badge b-single">'+s.single+' on one person</span>':'')+(s.delegable_ready?'<span class="badge b-ai">'+s.delegable_ready+' AI-ready</span>':'')+'</div></div>'+coverageBar(s);
+    dep.teams.forEach(t=>{const ts=t.summary;html+='<div class="item" style="cursor:pointer" onclick="openDrill('+t.team.id+')"><div class="item-row"><span class="item-name">'+esc(t.team.name)+' <span class="muted small">→</span></span><span>'+(ts.gap?'<span class="badge b-gap">'+ts.gap+' gap'+(ts.gap>1?'s':'')+'</span> ':'')+(ts.single?'<span class="badge b-single">'+ts.single+' on one person</span> ':'')+'<span class="badge '+(ts.coverage>=80?'b-covered':ts.coverage>=50?'b-single':'b-gap')+'">'+ts.coverage+'%</span></span></div>'+(t.gaps.length?'<div class="item-meta"><span style="color:var(--red)">Gaps:</span> '+t.gaps.map(esc).join(', ')+'</div>':'')+'</div>'});
+    html+='</div>';
+  });
+  html+=acrossList(d.across);
+  el.innerHTML=html;
+}
+
+// ── TEAM (drill for head/company, own team for leader) ──
+function openDrill(teamId){drill={team_id:teamId};teamTab='matrix';navigate('team')}
+function closeDrill(){drill=null;navigate('home')}
+function openTeamTab(tab){teamTab=tab;navigate('team')}
+function setTeamTab(tab){teamTab=tab;renderTeam()}
+function currentTeamId(){return drill?drill.team_id:U.team_id}
+function canEdit(){return !drill&&U.role==='leader'}
+async function loadTeam(){
+  document.getElementById('teamBack').classList.toggle('hidden',!drill);
+  const el=document.getElementById('teamContent');el.innerHTML='<p class="muted">Loading…</p>';
+  try{D=await api('/api/skills/team/'+currentTeamId());renderTeam()}
+  catch(e){el.innerHTML='<div class="error-msg">'+esc(e.message)+'</div>'}
+}
+async function refreshTeam(){D=await api('/api/skills/team/'+currentTeamId());renderTeam()}
+function renderTeam(){
+  document.getElementById('teamDept').textContent=D.team.department_name;
+  document.getElementById('teamTitle').textContent=D.team.name;
+  document.getElementById('teamSub').textContent=D.summary.skills+' skills · '+D.humans.length+' people · '+D.agents.length+' AI agent'+(D.agents.length!==1?'s':'');
+  document.querySelectorAll('#teamScreen .tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===teamTab));
+  const act=document.getElementById('teamActions');
+  act.innerHTML=canEdit()&&teamTab==='matrix'?'<button class="btn-sm btn-add" onclick="skillModal()">+ Skill</button><button class="btn-sm btn-ghost" onclick="agentModal()">+ AI agent</button>':(canEdit()&&teamTab==='plans'?'<button class="btn-sm btn-add" onclick="planModal()">+ Plan</button>':'');
+  const el=document.getElementById('teamContent');
+  if(teamTab==='matrix')el.innerHTML=renderMatrix();
+  else if(teamTab==='panorama')el.innerHTML=renderPanorama();
+  else el.innerHTML=renderPlans();
+}
+function renderMatrix(){
+  if(!D.skills.length)return '<div class="card"><div class="empty-state"><p>No skills listed yet.</p>'+(canEdit()?'<p class="small">Add the skills this team needs to do its work.</p><button class="btn-sm btn-add" style="margin-top:8px" onclick="skillModal()">+ Skill</button>':'')+'</div></div>';
+  const ro=!canEdit();
+  let html='<div class="card" style="padding:16px"><div class="mx-wrap"><table class="mx"><thead><tr><th style="text-align:left">Skill</th><th title="Required level">Req.</th><th title="Delegable to AI?">Del.</th>';
+  D.humans.forEach(h=>html+='<th title="'+esc(h.name)+'">'+esc(first(h.name))+(h.role==='leader'?'<span class="tag">lead</span>':'')+'</th>');
+  D.agents.forEach(g=>html+='<th class="ai" title="'+esc(g.name)+(g.description?' — '+esc(g.description):'')+'">'+(ro?'':'<button class="skill-name" style="color:var(--blue)" onclick="agentModal('+g.id+')">')+esc(g.name)+(ro?'':'</button>')+'<span class="tag">AI</span></th>');
+  html+='<th>Status</th></tr></thead><tbody>';
+  D.skills.forEach(s=>{
+    html+='<tr><td class="skill"><button class="skill-name'+(ro?' ro':'')+'" '+(ro?'':'onclick="skillModal('+s.id+')"')+' title="'+esc(s.description||'')+'">'+esc(s.name)+'</button></td><td class="req">'+s.required_level+'</td><td class="del" title="'+DEL[s.delegable][1]+' — '+DEL[s.delegable][2]+'">'+dg(s.delegable)+'</td>';
+    D.humans.forEach(h=>{const c=s.cells['user:'+h.id]||{};const lv=c.effective;
+      const tip=(c.self?'Self: '+c.self:'No self-assessment')+(c.leader?' · Leader: '+c.leader:'');
+      html+='<td><button class="cell '+cellClass(lv,s.required_level)+(ro?' ro':'')+'" title="'+esc(tip)+'" '+(ro?'':'onclick="cellModal('+s.id+',\'user\','+h.id+')"')+'>'+cellText(lv)+(c.discrepancy?'<span class="disc" title="Self and leader differ"></span>':'')+'</button></td>'});
+    D.agents.forEach(g=>{const c=s.cells['agent:'+g.id]||{};const lv=c.effective;
+      html+='<td><button class="cell '+cellClass(lv,s.required_level)+(ro?' ro':'')+'" '+(ro?'':'onclick="cellModal('+s.id+',\'agent\','+g.id+')"')+'>'+cellText(lv)+'</button></td>'});
+    html+='<td class="status">'+statusBadge(s.status)+'</td></tr>';
+  });
+  html+='</tbody></table></div>';
+  html+='<div class="legend"><span><b>B</b> Beginner · <b>I</b> Intermediate · <b>M</b> Master · <b>—</b> not applicable · <b>·</b> not assessed</span><span><span class="sw c-meet"></span>at level <span class="sw c-below" style="margin-left:8px"></span>one below <span class="sw c-far" style="margin-left:8px"></span>two below</span><span><span class="dg dg-full"></span> fully delegable · <span class="dg dg-half"></span> partially · <span class="dg"></span> stays human</span><span><span class="dot"></span>self and leader see different levels</span></div>';
+  if(!ro)html+='<p class="hint" style="margin-top:12px">Tap a cell to set your view of that person or agent. Tap a skill to edit it. The person\'s self-assessment stays alongside yours.</p>';
+  html+='</div>';
+  return html;
+}
+function sugLine(s,sug){
+  const i=s.suggestions.indexOf(sug);
+  return '<div class="sug"><span class="k badge '+(sug.type==='delegate'?'b-ai':sug.type==='ai_training'?'b-accent':'b-neutral')+'">'+ACTION[sug.type]+'</span><span class="t">'+esc(sug.text)+'</span>'+(canEdit()?'<button class="btn-link add" onclick="planFromSug('+s.id+','+i+')">Add to plan</button>':'')+'</div>';
+}
+function planFromSug(skillId,i){const s=D.skills.find(x=>x.id===skillId);const sug=s&&s.suggestions[i];if(sug)planModal(skillId,sug.type,sug.text)}
+function skillItem(s){
+  let html='<div class="item"><div class="item-row"><span class="item-name">'+esc(s.name)+' <span class="muted small">· needs '+s.required_level+'</span></span><span style="display:flex;gap:6px;flex-wrap:wrap">'+delBadge(s.delegable)+statusBadge(s.status)+'</span></div>';
+  html+='<div class="item-meta">'+s.meeting+' at level'+(s.below?' · '+s.below+' below':'')+(s.unassessed?' · '+s.unassessed+' not assessed':'')+(s.agents_meeting?' · '+s.agents_meeting+' agent'+(s.agents_meeting>1?'s':'')+' at level':'')+'</div>';
+  s.suggestions.forEach(sg=>html+=sugLine(s,sg));
+  if(s.plans.length)html+='<div class="item-meta" style="margin-top:8px">'+s.plans.map(p=>'<span class="badge '+(p.status==='done'?'b-covered':p.status==='in_progress'?'b-single':'b-neutral')+'">'+PLAN_STATUS[p.status]+'</span> '+esc(p.description)).join('<br>')+'</div>';
+  return html+'</div>';
+}
+function renderPanorama(){
+  if(!D.skills.length)return '<div class="card"><div class="empty-state"><p>Nothing to show yet. Add skills in the Matrix tab.</p></div></div>';
+  const s=D.summary;
+  let html=tiles(s)+tendStrip(D.tend,'Same people, same month. Low Growth next to open gaps usually points to the same conversation.');
+  const groups=[['gap','Gaps — nobody at the required level','grow-gap','b-gap'],['single','Depends on one person','grow-watch','b-single'],['ai','Covered only by AI','','b-ai'],['covered','Covered','grow-ok','b-covered']];
+  html+='<div class="card">';
+  groups.forEach(([st,title,,cls])=>{
+    const list=D.skills.filter(x=>x.status===st);if(!list.length)return;
+    html+='<div class="sec"><div class="sec-title '+cls+'"><span>'+title+'</span><span>'+list.length+'</span></div>';
+    list.forEach(x=>html+=skillItem(x));
+    html+='</div>';
+  });
+  html+='</div>';
+  const ready=D.skills.filter(x=>x.delegable!=='none'&&x.agents_meeting>0),opp=D.skills.filter(x=>x.delegable!=='none'&&x.agents_meeting===0);
+  html+='<div class="card"><h3>AI on the team</h3><p class="hint" style="margin-bottom:10px">Delegation is a skill decision, not a tool decision. A fully delegable skill with an agent at level can leave someone\'s plate. A partially delegable one keeps a human in the review. Agents need training too — a "—" means the skill doesn\'t exist for that agent, not that it\'s bad at it.</p>';
+  if(!D.agents.length)html+='<p class="muted small">No AI agents on this team yet.'+(canEdit()?' Add one from the Matrix tab.':'')+'</p>';
+  if(ready.length){html+='<div class="sec"><div class="sec-title b-ai"><span>Ready to delegate</span><span>'+ready.length+'</span></div>';ready.forEach(x=>html+='<div class="item"><div class="item-row"><span class="item-name">'+esc(x.name)+'</span>'+delBadge(x.delegable)+'</div>'+x.suggestions.filter(g=>g.type==='delegate').map(g=>sugLine(x,g)).join('')+'</div>');html+='</div>'}
+  if(opp.length){html+='<div class="sec"><div class="sec-title b-accent"><span>Opportunities — no agent at level yet</span><span>'+opp.length+'</span></div>';opp.forEach(x=>html+='<div class="item"><div class="item-row"><span class="item-name">'+esc(x.name)+'</span>'+delBadge(x.delegable)+'</div>'+x.suggestions.filter(g=>g.type==='ai_training').map(g=>sugLine(x,g)).join('')+'</div>');html+='</div>'}
+  html+='</div>';
+  return html;
+}
+function renderPlans(){
+  let html='';
+  const disc=[];D.skills.forEach(s=>s.discrepancies.forEach(d=>disc.push({skill:s,d})));
+  html+='<div class="card"><h3>For your 1:1s</h3><p class="hint" style="margin-bottom:8px">Where the person and the leader see different levels. Nobody is wrong — the fit is what\'s missing. Talk, then update the cell.</p>';
+  if(!disc.length)html+='<p class="muted small">No open differences.</p>';
+  disc.forEach(({skill,d})=>{html+='<div class="item"><div class="item-row"><span class="item-name">'+esc(first(d.name))+' <span class="muted">·</span> '+esc(skill.name)+'</span><span class="small">self <b>'+d.self+'</b> · leader <b>'+d.leader+'</b> · needs <b>'+skill.required_level+'</b></span></div>'+(canEdit()?'<button class="btn-link" onclick="cellModal('+skill.id+',\'user\','+d.user_id+')">Update after the conversation</button>':'')+'</div>'});
+  html+='</div>';
+  html+='<div class="card"><h3>Development plan</h3><p class="hint" style="margin-bottom:8px">Pairing between people with more and less experience, mentoring, training, hiring — and, for the skills that allow it, training the AI or delegating to it.</p>';
+  if(!D.plans.length)html+='<p class="muted small">No plan items yet.'+(canEdit()?' Use "Add to plan" in the Panorama, or + Plan above.':'')+'</p>';
+  D.plans.forEach(p=>{const sk=D.skills.find(x=>x.id===p.skill_id)||{name:'?'};
+    html+='<div class="item"><div class="item-row"><span class="item-name"><span class="badge '+(p.action_type==='delegate'?'b-ai':p.action_type==='ai_training'?'b-accent':'b-neutral')+'">'+ACTION[p.action_type]+'</span> '+esc(sk.name)+'</span>'+(canEdit()?'<span style="display:flex;gap:6px;align-items:center"><select class="btn-sm btn-ghost" style="padding:6px 10px" onchange="updatePlan('+p.id+',this.value)">'+Object.entries(PLAN_STATUS).map(([k,v])=>'<option value="'+k+'"'+(p.status===k?' selected':'')+'>'+v+'</option>').join('')+'</select><button class="btn-sm btn-danger" style="padding:6px 10px" onclick="deletePlan('+p.id+')">✕</button></span>':'<span class="badge '+(p.status==='done'?'b-covered':p.status==='in_progress'?'b-single':'b-neutral')+'">'+PLAN_STATUS[p.status]+'</span>')+'</div><div class="item-meta">'+esc(p.description)+'</div></div>'});
+  html+='</div>';
+  return html;
+}
+
+// ── MODALS: cell, skill, agent, plan ──
+function cellModal(skillId,type,subjectId){
+  const s=D.skills.find(x=>x.id===skillId);const c=s.cells[type+':'+subjectId]||{};
+  const who=type==='user'?D.humans.find(h=>h.id===subjectId):D.agents.find(g=>g.id===subjectId);
+  const isSelf=type==='user'&&subjectId===U.id;
+  const current=isSelf?(c.self||''):(c.leader||'');
+  const levels=type==='agent'?['B','I','M','NA']:['B','I','M'];
+  let html='<h3>'+esc(who.name)+' · '+esc(s.name)+'</h3><p class="hint" style="margin-bottom:14px">Needs <b>'+s.required_level+'</b> · '+DEL[s.delegable][1]+(type==='user'&&!isSelf?(c.self?' · Self-assessment: <b>'+c.self+'</b>':' · No self-assessment yet'):'')+'</p>';
+  html+='<div class="seg" id="cellSeg">'+levels.map(l=>'<button class="'+(current===l?'sel':'')+'" data-l="'+l+'" onclick="selSeg(\'cellSeg\',this)">'+l+'<small>'+LEVEL_LABEL[l]+'</small></button>').join('')+'</div>';
+  if(type==='agent')html+='<p class="help">"Not applicable" means the skill doesn\'t exist for this agent. It\'s not a low score.</p>';
+  html+='<div class="input-group" style="margin-top:14px"><label>Note (optional)</label><input id="cellNote" value="'+esc(c.note||'')+'" placeholder="e.g. led the last two incidents"></div>';
+  html+='<div id="cellError" class="error-msg hidden"></div><div class="modal-btns">'+(current?'<button class="btn btn-secondary" onclick="saveCell('+skillId+',\''+type+'\','+subjectId+','+isSelf+',null)">Clear</button>':'<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>')+'<button class="btn btn-primary" onclick="saveCell('+skillId+',\''+type+'\','+subjectId+','+isSelf+')">Save</button></div>';
+  openModal(html);
+}
+function selSeg(id,btn){document.querySelectorAll('#'+id+' button').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel')}
+function segVal(id){const b=document.querySelector('#'+id+' button.sel');return b?b.dataset.l||b.dataset.v:null}
+async function saveCell(skillId,type,subjectId,isSelf,forced){
+  const level=forced===null?null:segVal('cellSeg');
+  if(forced!==null&&!level){showError('cellError','Pick a level.');return}
+  try{await post('/api/skill-assessments',{skill_id:skillId,subject_type:type,subject_id:subjectId,source:isSelf?'self':'leader',level,note:document.getElementById('cellNote').value,assessed_by:U.id},'PUT');closeModal();await refreshTeam()}
+  catch(e){showError('cellError',e.message)}
+}
+function skillModal(id){
+  const s=id?D.skills.find(x=>x.id===id):null;
+  let html='<h3>'+(s?'Edit skill':'New skill')+'</h3><p class="hint" style="margin-bottom:14px">A skill is specific and measurable: "weekly financial report", not "finance".</p>';
+  html+='<div class="input-group"><label>Name</label><input id="skName" value="'+esc(s?s.name:'')+'" placeholder="e.g. Weekly financial report"></div>';
+  html+='<div class="input-group"><label>What it means here (optional)</label><input id="skDesc" value="'+esc(s?s.description||'':'')+'" placeholder="e.g. rules, formulas, who receives it"></div>';
+  html+='<div class="input-group"><label>Level the team needs</label><div class="seg" id="skReq">'+['B','I','M'].map(l=>'<button class="'+((s?s.required_level:'I')===l?'sel':'')+'" data-l="'+l+'" onclick="selSeg(\'skReq\',this)">'+l+'<small>'+LEVEL_LABEL[l]+'</small></button>').join('')+'</div></div>';
+  html+='<div class="input-group"><label>Can an AI agent do it?</label><div class="seg" id="skDel">'+['full','partial','none'].map(d=>'<button class="'+((s?s.delegable:'none')===d?'sel':'')+'" data-l="'+d+'" onclick="selSeg(\'skDel\',this)">'+dg(d)+' '+DEL[d][1].replace(' delegable','')+'<small>'+DEL[d][2]+'</small></button>').join('')+'</div><p class="help">Technical problems with known procedures and predictable outcomes are candidates for delegation. Adaptive challenges stay human.</p></div>';
+  html+='<div id="skError" class="error-msg hidden"></div><div class="modal-btns">'+(s?'<button class="btn btn-secondary" style="color:var(--red)" onclick="deleteSkill('+s.id+')">Delete</button>':'<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>')+'<button class="btn btn-primary" onclick="saveSkill('+(s?s.id:'null')+')">Save</button></div>';
+  openModal(html);setTimeout(()=>document.getElementById('skName').focus(),50);
+}
+async function saveSkill(id){
+  const body={name:document.getElementById('skName').value,description:document.getElementById('skDesc').value,required_level:segVal('skReq'),delegable:segVal('skDel')};
+  if(!body.name.trim()){showError('skError','Give the skill a name.');return}
+  try{
+    if(id)await post('/api/skills/'+id,{...body,user_id:U.id},'PUT');
+    else await post('/api/skills',{...body,team_id:currentTeamId(),created_by:U.id});
+    closeModal();await refreshTeam();
+  }catch(e){showError('skError',e.message)}
+}
+async function deleteSkill(id){
+  const s=D.skills.find(x=>x.id===id);
+  openModal('<h3>Delete "'+esc(s.name)+'"?</h3><p class="hint">All assessments and plan items for this skill go with it.</p><div class="modal-btns"><button class="btn btn-secondary" onclick="skillModal('+id+')">Keep it</button><button class="btn btn-primary" style="background:var(--red)" onclick="doDeleteSkill('+id+')">Delete</button></div>');
+}
+async function doDeleteSkill(id){try{await post('/api/skills/'+id,{user_id:U.id},'DELETE');closeModal();await refreshTeam()}catch(e){openModal('<div class="error-msg">'+esc(e.message)+'</div>')}}
+function agentModal(id){
+  const g=id?D.agents.find(x=>x.id===id):null;
+  let html='<h3>'+(g?'Edit AI agent':'New AI agent')+'</h3><p class="hint" style="margin-bottom:14px">An agent is a team member. Give it a name the team uses, then assess it skill by skill in the matrix.</p>';
+  html+='<div class="input-group"><label>Name</label><input id="agName" value="'+esc(g?g.name:'')+'" placeholder="e.g. Report Bot"></div>';
+  html+='<div class="input-group"><label>What it does (optional)</label><input id="agDesc" value="'+esc(g?g.description||'':'')+'" placeholder="e.g. builds the weekly PowerBI from Jira"></div>';
+  html+='<div id="agError" class="error-msg hidden"></div><div class="modal-btns">'+(g?'<button class="btn btn-secondary" style="color:var(--red)" onclick="doDeleteAgent('+g.id+')">Remove</button>':'<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>')+'<button class="btn btn-primary" onclick="saveAgent('+(g?g.id:'null')+')">Save</button></div>';
+  openModal(html);setTimeout(()=>document.getElementById('agName').focus(),50);
+}
+async function saveAgent(id){
+  const body={name:document.getElementById('agName').value,description:document.getElementById('agDesc').value};
+  if(!body.name.trim()){showError('agError','Give the agent a name.');return}
+  try{
+    if(id)await post('/api/skill-agents/'+id,{...body,user_id:U.id},'PUT');
+    else await post('/api/skill-agents',{...body,team_id:currentTeamId(),created_by:U.id});
+    closeModal();await refreshTeam();
+  }catch(e){showError('agError',e.message)}
+}
+async function doDeleteAgent(id){try{await post('/api/skill-agents/'+id,{user_id:U.id},'DELETE');closeModal();await refreshTeam()}catch(e){showError('agError',e.message)}}
+function planModal(skillId,type,text){
+  let html='<h3>Plan item</h3><p class="hint" style="margin-bottom:14px">One concrete action, with a name in it.</p>';
+  html+='<div class="input-group"><label>Skill</label><select id="plSkill">'+D.skills.map(s=>'<option value="'+s.id+'"'+(s.id===skillId?' selected':'')+'>'+esc(s.name)+'</option>').join('')+'</select></div>';
+  html+='<div class="input-group"><label>Action</label><select id="plType">'+Object.entries(ACTION).map(([k,v])=>'<option value="'+k+'"'+(k===(type||'pairing')?' selected':'')+'>'+v+'</option>').join('')+'</select></div>';
+  html+='<div class="input-group"><label>What exactly</label><textarea id="plDesc" placeholder="e.g. Felipe pairs with Natalia on the dashboards, Tuesdays, until she\'s at I">'+esc(text||'')+'</textarea></div>';
+  html+='<div id="plError" class="error-msg hidden"></div><div class="modal-btns"><button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="savePlan()">Save</button></div>';
+  openModal(html);
+}
+async function savePlan(){
+  try{await post('/api/skill-plans',{skill_id:parseInt(document.getElementById('plSkill').value),action_type:document.getElementById('plType').value,description:document.getElementById('plDesc').value,created_by:U.id});closeModal();teamTab='plans';await refreshTeam()}
+  catch(e){showError('plError',e.message)}
+}
+async function updatePlan(id,status){try{await post('/api/skill-plans/'+id,{status,user_id:U.id},'PUT');await refreshTeam()}catch(e){alert(e.message)}}
+async function deletePlan(id){try{await post('/api/skill-plans/'+id,{user_id:U.id},'DELETE');await refreshTeam()}catch(e){alert(e.message)}}
+
+// ── ME (self-assessment) ──
+async function loadMe(){
+  const el=document.getElementById('meContent');el.innerHTML='<p class="muted">Loading…</p>';
+  try{
+    const d=await api('/api/skills/me/'+U.id);
+    if(!d.team){el.innerHTML='<div class="card"><div class="empty-state"><p>You are not on a team yet.</p></div></div>';return}
+    document.getElementById('meSub').textContent=d.team.name+' · '+d.summary.meets+' of '+d.summary.skills+' at the level the team needs';
+    if(!d.skills.length){el.innerHTML='<div class="card"><div class="empty-state"><p>Your leader hasn\'t listed the team\'s skills yet.</p></div></div>';return}
+    let html='<div class="card"><p class="hint">Be honest, not modest. B — you can do it with help. I — you do it on your own. M — others learn it from you. Your leader\'s view sits next to yours; where they differ, that\'s a 1:1 topic, not a verdict.</p></div>';
+    html+='<div class="card">';
+    d.skills.forEach(s=>{
+      html+='<div class="me-skill"><div class="me-top"><div><div class="item-name">'+esc(s.name)+'</div><div class="item-meta">needs <b>'+s.required_level+'</b> · '+dg(s.delegable)+' '+DEL[s.delegable][1].toLowerCase()+(s.description?' · '+esc(s.description):'')+'</div></div>';
+      html+='<div class="lvl-row">'+['B','I','M'].map(l=>'<button class="lvl-btn'+(s.self===l?' sel':'')+'" onclick="selfAssess('+s.id+',\''+l+'\')">'+l+'</button>').join('')+'</div></div>';
+      let notes=[];
+      if(s.leader)notes.push('Your leader sees <b>'+s.leader+'</b>'+(s.discrepancy?' <span class="warn">— different from your view. Bring it to your 1:1.</span>':' — same as you.'));
+      if(s.state==='below'&&s.mentors.length)notes.push('<span class="grow">You could learn this from '+s.mentors.map(esc).join(', ')+'.</span>');
+      if(s.state==='meets'&&s.status==='single')notes.push('<span class="grow">You\'re the only one at this level. Someone could learn it from you.</span>');
+      if(notes.length)html+='<div class="me-notes">'+notes.join('<br>')+'</div>';
+      html+='</div>';
+    });
+    html+='</div>';
+    html+=tendStrip(d.tend,'Your own answers in Tend this month.');
+    el.innerHTML=html;
+  }catch(e){el.innerHTML='<div class="error-msg">'+esc(e.message)+'</div>'}
+}
+async function selfAssess(skillId,level){
+  try{await post('/api/skill-assessments',{skill_id:skillId,subject_type:'user',subject_id:U.id,source:'self',level,assessed_by:U.id},'PUT');loadMe()}
+  catch(e){alert(e.message)}
+}
+
+// ── PROFILE ──
+function loadProfile(){
+  const roleLbl={member:'Team Member',leader:'Team Leader',head:'Department Head',company:'Company'}[U.role];
+  let html='<div class="card"><div class="avatar">'+esc(U.name.split(' ').map(p=>p[0]).slice(0,2).join(''))+'</div><h2 class="profile-name">'+esc(U.name)+'</h2><p class="profile-meta">'+roleLbl+(U.team_name?' · '+U.team_name:'')+(U.department_name?' · '+U.department_name:'')+(U.company_name?' · '+U.company_name:'')+'</p></div>';
+  html+='<div class="card"><h3>Other tools</h3><p class="hint" style="margin-bottom:10px">Same login, same database.</p><a href="/tend" class="btn btn-secondary" style="margin-bottom:8px">Tend — values →</a><a href="/hub" class="btn btn-secondary">Shapeless Hub</a></div>';
+  html+='<div class="card"><h3>Security</h3><button class="btn btn-secondary" style="margin-top:8px" onclick="showChangePassword()">Change Password</button></div>';
+  html+='<button class="btn btn-secondary" style="margin-top:8px" onclick="logout()">Sign Out</button>';
+  document.getElementById('profileContent').innerHTML=html;
+}
+function showChangePassword(){
+  openModal('<h3>Change Password</h3><div class="input-group"><label>Current Password</label><input id="cpOld" type="password"></div><div class="input-group"><label>New Password</label><input id="cpNew" type="password" placeholder="At least 4 characters"></div><div class="input-group"><label>Confirm New Password</label><input id="cpConfirm" type="password"></div><div id="cpError" class="error-msg hidden"></div><div id="cpSuccess" class="ok-msg hidden"></div><div class="modal-btns"><button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="doChangePassword()">Update</button></div>');
+}
+async function doChangePassword(){
+  const o=document.getElementById('cpOld').value,n=document.getElementById('cpNew').value,c=document.getElementById('cpConfirm').value;
+  if(!o||!n||!c){showError('cpError','All fields are required.');return}
+  if(n!==c){showError('cpError','New passwords don\'t match.');return}
+  try{await post('/api/change-password',{user_id:U.id,old_password:o,new_password:n});document.getElementById('cpError').classList.add('hidden');const s=document.getElementById('cpSuccess');s.textContent='Password updated.';s.classList.remove('hidden');setTimeout(closeModal,1200)}
+  catch(e){showError('cpError',e.message)}
+}
+
+document.getElementById('loginPwd').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+document.getElementById('loginUser').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('loginPwd').focus()});
+try{const saved=sessionStorage.getItem('shapeless_user');if(saved){U=JSON.parse(saved);enterApp()}}catch(e){}
+</script>
+</body>
+</html>

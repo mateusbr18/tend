@@ -1,0 +1,8 @@
+node_modules/
+ferramenta1.db
+ferramenta1.db-wal
+ferramenta1.db-shm
+.DS_Store
+gh
+gh.zip
+gh_temp/
