@@ -35,9 +35,9 @@ services:
       - key: APP
         value: skills
       - key: API_BASE
-        value: https://tend-app-vhh2.onrender.com
+        value: https://tend-0qpy.onrender.com
       - key: TEND_URL
-        value: https://tend-app-vhh2.onrender.com
+        value: https://tend-0qpy.onrender.com
       - key: HUB_URL
         value: https://shapeless-hub.onrender.com
 
@@ -53,6 +53,6 @@ services:
       - key: APP
         value: hub
       - key: TEND_URL
-        value: https://tend-app-vhh2.onrender.com
+        value: https://tend-0qpy.onrender.com
       - key: SKILLS_URL
         value: https://skills-matrix-4plr.onrender.com
