@@ -10,7 +10,7 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--fg);min-height:100vh}
 h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
-.container{max-width:480px;margin:0 auto;padding:16px;padding-bottom:100px}
+.container{max-width:900px;margin:0 auto;padding:16px 24px;padding-bottom:100px}
 .hidden{display:none!important}
 .card{background:var(--bg2);border-radius:16px;padding:24px;margin-bottom:16px;border:1px solid var(--border)}
 .card h2{font-size:1.3rem;margin-bottom:12px}
@@ -89,7 +89,18 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 .badge-warn{background:rgba(251,191,36,.15);color:var(--yellow)}
 .badge-gap{background:rgba(248,113,113,.15);color:var(--red)}
 .hm-1{background:#991b1b;color:#fecaca}.hm-2{background:#92400e;color:#fde68a}.hm-3{background:#854d0e;color:#fef9c3}.hm-4{background:#166534;color:#bbf7d0}.hm-5{background:#14532d;color:#86efac}
-/* Responsive */
+/* Responsive — desktop */
+@media(min-width:768px){
+  .container{padding:24px 32px;padding-bottom:80px}
+  .card{padding:28px}
+  .hm-table th,.hm-table td{padding:8px 10px;font-size:.9rem;min-width:56px}
+  .hm-valor{font-size:.85rem}
+  .nav{max-width:900px;left:50%;transform:translateX(-50%);border-radius:16px 16px 0 0;border:1px solid var(--border);border-bottom:none}
+  .login-header h1{font-size:2.4rem}
+  .scale-row{max-width:400px}
+  .dash-header{display:flex;justify-content:space-between;align-items:flex-start}
+}
+/* Responsive — phone */
 @media(max-width:480px){
   .container{padding:12px;padding-bottom:90px}
   .card{padding:16px;margin-bottom:12px}
@@ -219,8 +230,13 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 
 <!-- DASHBOARD -->
 <div id="dashboardScreen" class="container hidden">
-  <h2 style="font-size:1.3rem;margin-bottom:4px" id="dashTitle">Dashboard</h2>
-  <p style="color:var(--fg2);font-size:.85rem;margin-bottom:16px" id="dashSubtitle"></p>
+  <div class="dash-header">
+    <div>
+      <h2 style="font-size:1.3rem;margin-bottom:4px" id="dashTitle">Dashboard</h2>
+      <p style="color:var(--fg2);font-size:.85rem;margin-bottom:16px" id="dashSubtitle"></p>
+    </div>
+    <div id="dashActions"></div>
+  </div>
   <div class="tabs" id="dashTabs"></div>
   <div id="dashContent"></div>
 </div>
@@ -264,8 +280,10 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
   </button>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script>
-let U = null, cycle = null, valores = [], pulseAnswers = [], currentQ = 0, dashTab = 'overview', hmDrillTeam = null;
+let U = null, cycle = null, valores = [], pulseAnswers = [], currentQ = 0, dashTab = 'overview', hmDrillTeam = null, hmDrillDept = null;
 const API = '';
 
 function navigate(s) {
@@ -437,13 +455,18 @@ async function loadDashboard(){
 
   const tabs=[{id:'overview',label:'Overview'},{id:'heatmap',label:'Heat Map'},{id:'grow',label:'Grow Plan'},{id:'trend',label:'Trend'}];
   document.getElementById('dashTabs').innerHTML=tabs.map(t=>'<button class="tab '+(dashTab===t.id?'active':'')+'" onclick="switchDash(\''+t.id+'\')">'+t.label+'</button>').join('');
+  // PDF button for head/company
+  const actEl=document.getElementById('dashActions');
+  if(U.role==='head'||U.role==='company'){
+    actEl.innerHTML='<button class="btn-sm btn-add" onclick="generatePDF()" style="white-space:nowrap">📄 Export PDF</button>';
+  } else { actEl.innerHTML=''; }
 
   if(dashTab==='overview') await renderOverview();
   else if(dashTab==='heatmap') await renderHeatMap();
   else if(dashTab==='grow') await renderGrow();
   else if(dashTab==='trend') await renderTrend();
 }
-function switchDash(t){dashTab=t;hmDrillTeam=null;loadDashboard()}
+function switchDash(t){dashTab=t;hmDrillTeam=null;hmDrillDept=null;loadDashboard()}
 
 // ── OVERVIEW ──────────────────────
 async function renderOverview(){
@@ -499,9 +522,12 @@ async function renderHeatMap(){
   const el=document.getElementById('dashContent');
   if(!cycle){el.innerHTML='<div class="card"><div class="empty-state"><div class="empty-icon">🗺️</div><p>No active cycle.</p></div></div>';return}
 
-  // If drilling into a specific team (for head/company)
+  // Drill state: company can drill dept→team→person; head can drill team→person
   if(hmDrillTeam && (U.role==='head'||U.role==='company')){
-    await renderHeatMapDrill(el);return;
+    await renderHeatMapPersonDrill(el);return;
+  }
+  if(hmDrillDept && U.role==='company'){
+    await renderHeatMapDeptDrill(el);return;
   }
 
   let url;
@@ -514,12 +540,19 @@ async function renderHeatMap(){
   const hasData=grid.some(r=>Object.values(r.scores).some(s=>s!==null));
   if(!hasData){el.innerHTML='<div class="card"><div class="empty-state"><div class="empty-icon">🗺️</div><p>No responses yet.</p><p style="font-size:.85rem">The heat map appears once members complete their check-in.</p></div></div>';return}
 
-  const canDrill=U.role==='head'||U.role==='company';
-  const colLabel=U.role==='leader'?'Members':U.role==='head'?'Teams (tap to see people)':'Departments';
-  let html='<div class="card"><h3>Heat Map · '+colLabel+'</h3><div class="hm-grid"><table class="hm-table"><thead><tr><th></th>';
-  columns.forEach(c=>{const nm=c.name.length>10?c.name.slice(0,9)+'.':c.name;
-    if(canDrill && U.role==='head'){html+='<th class="drilldown-link" onclick="drillHeatmap('+c.id+',\''+c.name.replace(/'/g,"\\'")+'\')">'+nm+'</th>'}
-    else{html+='<th>'+nm+'</th>'}
+  const colLabel=U.role==='leader'?'Members':U.role==='head'?'Teams':'Departments';
+  const hint=U.role==='company'?'<p style="color:var(--fg2);font-size:.82rem;margin-bottom:12px">Tap a department name to see its teams.</p>'
+    :U.role==='head'?'<p style="color:var(--fg2);font-size:.82rem;margin-bottom:12px">Tap a team name to see individual responses.</p>':'';
+  let html='<div class="card"><h3>Heat Map · '+colLabel+'</h3>'+hint+'<div class="hm-grid"><table class="hm-table"><thead><tr><th></th>';
+  columns.forEach(c=>{
+    const nm=c.name.length>14?c.name.slice(0,13)+'.':c.name;
+    if(U.role==='company'){
+      html+='<th class="drilldown-link" onclick="drillDept('+c.id+',\''+c.name.replace(/'/g,"\\'")+'\')">'+nm+'</th>';
+    } else if(U.role==='head'){
+      html+='<th class="drilldown-link" onclick="drillTeam('+c.id+',\''+c.name.replace(/'/g,"\\'")+'\')">'+nm+'</th>';
+    } else {
+      html+='<th>'+nm+'</th>';
+    }
   });
   html+='<th>Avg</th></tr></thead><tbody>';
   grid.forEach(row=>{
@@ -530,35 +563,55 @@ async function renderHeatMap(){
   });
   html+='</tbody></table></div></div>';
   if(data.gaps&&data.gaps.length>0) html+='<div class="card"><h3>⚠️ Attention Areas</h3><p style="color:var(--fg2);font-size:.9rem;margin-top:8px">Averages at or below 2.5: <strong>'+data.gaps.join(', ')+'</strong></p></div>';
-
-  // For company level, add expandable dept → team drill
-  if(U.role==='company'){
-    html+='<div class="card"><h3>Drill Down by Team</h3>';
-    const deptsRes=await fetch(API+'/api/companies/'+U.company_id+'/departments');
-    const depts=await deptsRes.json();
-    for(const d of depts){
-      const teamsRes=await fetch(API+'/api/departments/'+d.id+'/teams');
-      const teams=await teamsRes.json();
-      html+='<div style="margin-bottom:12px"><div style="font-weight:600;font-size:.9rem;margin-bottom:4px">'+d.name+'</div>';
-      teams.forEach(t=>{html+='<div class="drilldown-link" style="padding:4px 0;font-size:.9rem;color:var(--accent)" onclick="drillHeatmap('+t.id+',\''+t.name.replace(/'/g,"\\'")+'\')">→ '+t.name+'</div>'});
-      html+='</div>';
-    }
-    html+='</div>';
-  }
-
   el.innerHTML=html;
 }
 
-function drillHeatmap(teamId,teamName){hmDrillTeam={id:teamId,name:teamName};renderHeatMap()}
-function backFromDrill(){hmDrillTeam=null;renderHeatMap()}
+// Company drills into a department → shows teams
+function drillDept(deptId,deptName){hmDrillDept={id:deptId,name:deptName};hmDrillTeam=null;renderHeatMap()}
+function backFromDeptDrill(){hmDrillDept=null;renderHeatMap()}
 
-async function renderHeatMapDrill(el){
+async function renderHeatMapDeptDrill(el){
+  const res=await fetch(API+'/api/heatmap/department/'+hmDrillDept.id+'/'+cycle.id);
+  const data=await res.json();
+  const{columns,grid}=data;
+  const hasData=grid.some(r=>Object.values(r.scores).some(s=>s!==null));
+
+  let html='<button class="back-btn" onclick="backFromDeptDrill()">← Back to company overview</button>';
+  if(!hasData){html+='<div class="card"><div class="empty-state"><div class="empty-icon">🗺️</div><p>No responses in '+hmDrillDept.name+' yet.</p></div></div>';el.innerHTML=html;return}
+
+  html+='<div class="card"><h3>'+hmDrillDept.name+' · Teams</h3><p style="color:var(--fg2);font-size:.82rem;margin-bottom:12px">Tap a team name to see individual responses.</p><div class="hm-grid"><table class="hm-table"><thead><tr><th></th>';
+  columns.forEach(c=>{
+    const nm=c.name.length>14?c.name.slice(0,13)+'.':c.name;
+    html+='<th class="drilldown-link" onclick="drillTeam('+c.id+',\''+c.name.replace(/'/g,"\\'")+'\')">'+nm+'</th>';
+  });
+  html+='<th>Avg</th></tr></thead><tbody>';
+  grid.forEach(row=>{
+    html+='<tr><td class="hm-valor">'+row.valor+'</td>';
+    columns.forEach(c=>{const s=row.scores[String(c.id)];html+=hmCell(s)});
+    if(row.avg!==null){const cls=hmColorClass(row.avg);html+='<td class="'+cls+' hm-avg">'+row.avg+'</td>'}else html+='<td class="hm-null">—</td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div></div>';
+  if(data.gaps&&data.gaps.length>0) html+='<div class="card"><h3>⚠️ '+hmDrillDept.name+' — Attention Areas</h3><p style="color:var(--fg2);font-size:.9rem;margin-top:8px">Averages at or below 2.5: <strong>'+data.gaps.join(', ')+'</strong></p></div>';
+  el.innerHTML=html;
+}
+
+// Head or Company (after dept drill) → drills into a team → shows per person
+function drillTeam(teamId,teamName){hmDrillTeam={id:teamId,name:teamName};renderHeatMap()}
+function backFromPersonDrill(){
+  hmDrillTeam=null;
+  // If company admin, go back to dept drill; if head, go back to main
+  renderHeatMap();
+}
+
+async function renderHeatMapPersonDrill(el){
   const res=await fetch(API+'/api/heatmap/team/'+hmDrillTeam.id+'/'+cycle.id);
   const data=await res.json();
   const{columns,grid}=data;
   const hasData=grid.some(r=>Object.values(r.scores).some(s=>s!==null));
 
-  let html='<button class="back-btn" onclick="backFromDrill()">← Back to overview</button>';
+  const backLabel=U.role==='company'&&hmDrillDept?'← Back to '+hmDrillDept.name:'← Back to overview';
+  let html='<button class="back-btn" onclick="backFromPersonDrill()">'+backLabel+'</button>';
   if(!hasData){html+='<div class="card"><div class="empty-state"><div class="empty-icon">🗺️</div><p>No responses in '+hmDrillTeam.name+' yet.</p></div></div>';el.innerHTML=html;return}
 
   html+='<div class="card"><h3>'+hmDrillTeam.name+' · Per Person</h3><div class="hm-grid"><table class="hm-table"><thead><tr><th></th>';
@@ -714,6 +767,107 @@ function drawTrendChart(){
       ctx.beginPath();ctx.arc(x,y,3*dpr,0,Math.PI*2);ctx.fill();
     });
   });
+}
+
+// ── PDF REPORT ───────────────────
+async function generatePDF(){
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const W=297,H=210;
+  const accent=[45,107,223],dark=[30,41,59],muted=[100,116,139],white=[255,255,255];
+  const hmColors=[[220,38,38],[234,88,12],[234,179,8],[34,197,94],[22,163,74]];
+
+  // Header
+  doc.setFillColor(...dark);doc.rect(0,0,W,28,  'F');
+  doc.setTextColor(...white);doc.setFontSize(18);doc.setFont('helvetica','bold');
+  doc.text('Tend · Executive Report',14,16);
+  doc.setFontSize(9);doc.setFont('helvetica','normal');
+  doc.text(cycle?cycle.label:'',14,23);
+  doc.text(U.company_name||'',W-14,16,{align:'right'});
+  doc.text(new Date().toLocaleDateString('en-GB'),W-14,23,{align:'right'});
+
+  // Fetch data
+  let overviewUrl,heatmapUrl;
+  if(U.role==='company'){
+    overviewUrl='/api/overview/company/'+U.company_id+'/'+cycle.id;
+    heatmapUrl='/api/heatmap/company/'+U.company_id+'/'+cycle.id;
+  } else {
+    overviewUrl='/api/overview/department/'+U.department_id+'/'+cycle.id;
+    heatmapUrl='/api/heatmap/department/'+U.department_id+'/'+cycle.id;
+  }
+  const[ovRes,hmRes]=await Promise.all([fetch(API+overviewUrl),fetch(API+heatmapUrl)]);
+  const overview=await ovRes.json();
+  const heatmap=await hmRes.json();
+
+  // Overview cards
+  let y=36;
+  doc.setFontSize(12);doc.setFont('helvetica','bold');doc.setTextColor(...dark);
+  doc.text('Overview',14,y);y+=8;
+
+  const cards=overview.cards||[];
+  const cardW=62,cardH=22,cardGap=6;
+  cards.forEach((c,i)=>{
+    const x=14+i*(cardW+cardGap);
+    doc.setFillColor(245,247,250);doc.roundedRect(x,y,cardW,cardH,3,3,'F');
+    doc.setFontSize(16);doc.setFont('helvetica','bold');doc.setTextColor(...accent);
+    doc.text(String(c.value),x+cardW/2,y+10,{align:'center'});
+    doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(...muted);
+    doc.text(c.label,x+cardW/2,y+17,{align:'center'});
+  });
+  y+=cardH+10;
+
+  // Heatmap table
+  doc.setFontSize(12);doc.setFont('helvetica','bold');doc.setTextColor(...dark);
+  doc.text('Heat Map',14,y);y+=4;
+
+  const cols=heatmap.columns||[];
+  const grid=heatmap.grid||[];
+  const colNames=cols.map(c=>c.name.length>12?c.name.slice(0,11)+'.':c.name);
+  const head=[['Value',...colNames,'Avg']];
+  const body=grid.map(row=>{
+    const cells=[row.valor];
+    cols.forEach(c=>{const s=row.scores[String(c.id)];cells.push(s!==null&&s!==undefined?String(s):'—')});
+    cells.push(row.avg!==null?String(row.avg):'—');
+    return cells;
+  });
+
+  doc.autoTable({
+    startY:y,
+    head:head,
+    body:body,
+    theme:'grid',
+    margin:{left:14,right:14},
+    styles:{fontSize:7,cellPadding:2,halign:'center',valign:'middle',lineColor:[200,200,200],lineWidth:0.2},
+    headStyles:{fillColor:dark,textColor:white,fontSize:7,fontStyle:'bold'},
+    columnStyles:{0:{halign:'left',fontStyle:'bold',cellWidth:36}},
+    didParseCell:function(data){
+      if(data.section==='body'&&data.column.index>0){
+        const v=parseFloat(data.cell.raw);
+        if(!isNaN(v)){
+          let ci=0;
+          if(v>=1.5)ci=1;if(v>=2.5)ci=2;if(v>=3.5)ci=3;if(v>=4.5)ci=4;
+          data.cell.styles.fillColor=hmColors[ci];
+          data.cell.styles.textColor=white;
+        }
+      }
+    }
+  });
+
+  // Attention areas
+  const finalY=doc.lastAutoTable.finalY+8;
+  if(heatmap.gaps&&heatmap.gaps.length>0){
+    doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(220,38,38);
+    doc.text('⚠ Attention Areas (avg ≤ 2.5)',14,finalY);
+    doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(...dark);
+    doc.text(heatmap.gaps.join(', '),14,finalY+6);
+  }
+
+  // Footer
+  doc.setFontSize(7);doc.setTextColor(...muted);
+  doc.text('Generated by Tend · '+new Date().toISOString().slice(0,10),14,H-6);
+
+  const filename='Tend_Report_'+(cycle?cycle.label.replace(/\s/g,'_'):'report')+'.pdf';
+  doc.save(filename);
 }
 
 // ── PROFILE ───────────────────────
