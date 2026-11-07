@@ -2,8 +2,10 @@
 #   tend            → values tool; owns the SQLite database and the API
 #   skills-matrix   → skills tool; talks to the tend API across domains (CORS is on)
 #   shapeless-hub   → landing page linking to both
-# Each gets its own *.onrender.com URL. Free plan: services sleep when idle,
-# and the database is re-seeded on every deploy (no persistent disk).
+# Each has its own public *.onrender.com URL. They are written here explicitly:
+# `fromService … property: host` gives Render's internal hostname, not the public one.
+# Free plan: services sleep when idle, and the database is re-seeded on every deploy
+# (no persistent disk).
 services:
   - type: web
     name: tend
@@ -16,6 +18,10 @@ services:
         value: production
       - key: APP
         value: tend
+      - key: HUB_URL
+        value: https://shapeless-hub.onrender.com
+      - key: SKILLS_URL
+        value: https://skills-matrix-4plr.onrender.com
 
   - type: web
     name: skills-matrix
@@ -29,20 +35,11 @@ services:
       - key: APP
         value: skills
       - key: API_BASE
-        fromService:
-          type: web
-          name: tend
-          property: host
+        value: https://tend-app-vhh2.onrender.com
       - key: TEND_URL
-        fromService:
-          type: web
-          name: tend
-          property: host
+        value: https://tend-app-vhh2.onrender.com
       - key: HUB_URL
-        fromService:
-          type: web
-          name: shapeless-hub
-          property: host
+        value: https://shapeless-hub.onrender.com
 
   - type: web
     name: shapeless-hub
@@ -56,12 +53,6 @@ services:
       - key: APP
         value: hub
       - key: TEND_URL
-        fromService:
-          type: web
-          name: tend
-          property: host
+        value: https://tend-app-vhh2.onrender.com
       - key: SKILLS_URL
-        fromService:
-          type: web
-          name: skills-matrix
-          property: host
+        value: https://skills-matrix-4plr.onrender.com
