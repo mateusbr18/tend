@@ -796,21 +796,32 @@ async function generatePDF(){
     heatmapUrl='/api/heatmap/department/'+U.department_id+'/'+cycle.id;
   }
   const[ovRes,hmRes]=await Promise.all([fetch(API+overviewUrl),fetch(API+heatmapUrl)]);
-  const overview=await ovRes.json();
+  const overview=await ovRes.json(); // array of dept/team objects
   const heatmap=await hmRes.json();
 
-  // Overview cards
+  // Summary cards from overview data
   let y=36;
   doc.setFontSize(12);doc.setFont('helvetica','bold');doc.setTextColor(...dark);
   doc.text('Overview',14,y);y+=8;
 
-  const cards=overview.cards||[];
+  const totalMembers=overview.reduce((s,o)=>s+o.members,0);
+  const totalAnswered=overview.reduce((s,o)=>s+o.answered,0);
+  const allAvgs=overview.filter(o=>o.avg!==null).map(o=>o.avg);
+  const globalAvg=allAvgs.length?Math.round(allAvgs.reduce((s,v)=>s+v,0)/allAvgs.length*10)/10:'-';
+  const participation=totalMembers?Math.round(totalAnswered/totalMembers*100):0;
+  const unitLabel=U.role==='company'?'Departments':'Teams';
+  const summaryCards=[
+    {label:unitLabel,value:String(overview.length)},
+    {label:'Members',value:String(totalMembers)},
+    {label:'Participation',value:participation+'%'},
+    {label:'Avg Score',value:String(globalAvg)}
+  ];
   const cardW=62,cardH=22,cardGap=6;
-  cards.forEach((c,i)=>{
+  summaryCards.forEach((c,i)=>{
     const x=14+i*(cardW+cardGap);
     doc.setFillColor(245,247,250);doc.roundedRect(x,y,cardW,cardH,3,3,'F');
     doc.setFontSize(16);doc.setFont('helvetica','bold');doc.setTextColor(...accent);
-    doc.text(String(c.value),x+cardW/2,y+10,{align:'center'});
+    doc.text(c.value,x+cardW/2,y+10,{align:'center'});
     doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(...muted);
     doc.text(c.label,x+cardW/2,y+17,{align:'center'});
   });
