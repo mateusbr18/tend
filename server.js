@@ -4,10 +4,27 @@ const cors = require('cors');
 const path = require('path');
 const crypto = require('crypto');
 
+// ── Deployment shape ───────────────────────────
+// One codebase, three possible services, each with its own URL:
+//   APP=tend    → serves Tend at /, owns the database and the API
+//   APP=skills  → serves Skills Matrix at /, talks to the Tend API (API_BASE)
+//   APP=hub     → serves the Hub at /, links to TEND_URL and SKILLS_URL
+//   APP unset   → everything on one server: / hub, /tend, /skills (local dev)
+const APP = (process.env.APP || 'all').toLowerCase();
+const withScheme = u => !u ? '' : (/^https?:\/\//i.test(u) ? u : 'https://' + u).replace(/\/+$/, '');
+const CONFIG = {
+  API: withScheme(process.env.API_BASE),
+  HUB_URL: withScheme(process.env.HUB_URL) || '/hub',
+  TEND_URL: withScheme(process.env.TEND_URL) || '/tend',
+  SKILLS_URL: withScheme(process.env.SKILLS_URL) || '/skills',
+};
+
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public'), { index: false }));
+// Static assets, except the HTML pages — those go through the page handlers below so links and API base can be configured.
+const staticFiles = express.static(path.join(__dirname, 'public'), { index: false });
+app.use((req, res, next) => (req.path.endsWith('.html') ? next() : staticFiles(req, res, next)));
 
 const dbPath = path.join(__dirname, 'ferramenta1.db');
 const db = new Database(dbPath);
@@ -1476,13 +1493,34 @@ app.delete('/api/skill-plans/:id', (req, res) => {
 });
 
 // ── Pages ──────────────────────────────────────
-const page = f => (_, res) => res.sendFile(path.join(__dirname, 'public', f));
-app.get(['/', '/hub'], page('hub.html'));
-app.get('/tend', page('index.html'));
-app.get('/skills', page('skills.html'));
+// HTML is served with {{API}}, {{HUB_URL}}, {{TEND_URL}}, {{SKILLS_URL}} filled in from CONFIG.
+const fs = require('fs');
+const pageCache = {};
+function renderPage(file) {
+  if (!pageCache[file]) {
+    let html = fs.readFileSync(path.join(__dirname, 'public', file), 'utf8');
+    for (const [k, v] of Object.entries(CONFIG)) html = html.split('{{' + k + '}}').join(v);
+    pageCache[file] = html;
+  }
+  return pageCache[file];
+}
+const page = file => (_, res) => res.type('html').send(renderPage(file));
+// A tool that lives on another service redirects there; otherwise it is served here.
+const external = url => /^https?:\/\//i.test(url);
+const tool = (file, url) => external(url) ? (_, res) => res.redirect(url) : page(file);
 
-// Fallback → Hub
-app.get('*', page('hub.html'));
+const HUB = tool('hub.html', CONFIG.HUB_URL);
+const TEND = tool('index.html', CONFIG.TEND_URL);
+const SKILLS = tool('skills.html', CONFIG.SKILLS_URL);
+const HOME = { tend: page('index.html'), skills: page('skills.html'), hub: page('hub.html') }[APP] || page('hub.html');
+
+app.get('/', HOME);
+app.get(['/hub', '/hub.html'], APP === 'hub' ? page('hub.html') : HUB);
+app.get(['/tend', '/index.html'], APP === 'tend' ? page('index.html') : TEND);
+app.get(['/skills', '/skills.html'], APP === 'skills' ? page('skills.html') : SKILLS);
+
+// Fallback → this service's home page
+app.get('*', HOME);
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`\n  Shapeless Hub — The Shapeless Team\n  Hub    http://localhost:${PORT}/\n  Tend   http://localhost:${PORT}/tend\n  Skills http://localhost:${PORT}/skills\n`));
+app.listen(PORT, () => console.log(`\n  The Shapeless Team — service: ${APP}\n  http://localhost:${PORT}/\n` + (APP === 'all' ? `  Hub /  ·  Tend /tend  ·  Skills /skills\n` : `  API ${CONFIG.API || '(local)'}  ·  hub ${CONFIG.HUB_URL}  ·  tend ${CONFIG.TEND_URL}  ·  skills ${CONFIG.SKILLS_URL}\n`)));

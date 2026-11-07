@@ -1,3 +1,9 @@
+# The Shapeless Team — three services, one codebase, one database.
+#   tend            → values tool; owns the SQLite database and the API
+#   skills-matrix   → skills tool; talks to the tend API across domains (CORS is on)
+#   shapeless-hub   → landing page linking to both
+# Each gets its own *.onrender.com URL. Free plan: services sleep when idle,
+# and the database is re-seeded on every deploy (no persistent disk).
 services:
   - type: web
     name: tend
@@ -8,3 +14,54 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: APP
+        value: tend
+
+  - type: web
+    name: skills-matrix
+    runtime: node
+    buildCommand: npm install
+    startCommand: node server.js
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP
+        value: skills
+      - key: API_BASE
+        fromService:
+          type: web
+          name: tend
+          property: host
+      - key: TEND_URL
+        fromService:
+          type: web
+          name: tend
+          property: host
+      - key: HUB_URL
+        fromService:
+          type: web
+          name: shapeless-hub
+          property: host
+
+  - type: web
+    name: shapeless-hub
+    runtime: node
+    buildCommand: npm install
+    startCommand: node server.js
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP
+        value: hub
+      - key: TEND_URL
+        fromService:
+          type: web
+          name: tend
+          property: host
+      - key: SKILLS_URL
+        fromService:
+          type: web
+          name: skills-matrix
+          property: host

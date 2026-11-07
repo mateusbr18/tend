@@ -153,7 +153,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
   <div class="login-header">
     <h1>Skills Matrix</h1>
     <p>Map skills across humans and AI agents</p>
-    <p style="margin-top:8px;font-size:.8rem"><a href="/hub" style="color:var(--accent);text-decoration:none">← Shapeless Hub</a></p>
+    <p style="margin-top:8px;font-size:.8rem"><a href="{{HUB_URL}}" style="color:var(--accent);text-decoration:none">← Shapeless Hub</a></p>
   </div>
   <div class="card">
     <h2>Sign In</h2>
@@ -162,7 +162,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
     <div class="input-group"><label>Username</label><input type="text" id="loginUser" placeholder="e.g. felipe" autocomplete="username" autocapitalize="none"></div>
     <div class="input-group"><label>Password</label><input type="password" id="loginPwd" placeholder="••••" autocomplete="current-password"></div>
     <button class="btn btn-primary" onclick="doLogin()">Sign In</button>
-    <p class="hint" style="margin-top:14px;text-align:center">No account yet? Register in <a href="/tend" style="color:var(--accent)">Tend</a> — it works here too.</p>
+    <p class="hint" style="margin-top:14px;text-align:center">No account yet? Register in <a href="{{TEND_URL}}" style="color:var(--accent)">Tend</a> — it works here too.</p>
   </div>
 </div>
 
@@ -218,7 +218,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 </div>
 
 <script>
-const API='';
+const API='{{API}}';
 let U=null, D=null, drill=null, teamTab='matrix';
 const LVL={NA:0,B:1,I:2,M:3};
 const LEVEL_LABEL={B:'Beginner',I:'Intermediate',M:'Master',NA:'Not applicable'};
@@ -252,8 +252,9 @@ function navigate(s){
 async function doLogin(){
   const username=document.getElementById('loginUser').value.trim(),password=document.getElementById('loginPwd').value;
   if(!username||!password){showError('loginError','Please enter username and password.');return}
-  try{U=await post('/api/login',{username,password});enterApp()}
-  catch(e){showError('loginError',e.message==='Request failed'?'Connection error. Is the server running?':e.message)}
+  const slow=setTimeout(()=>showError('loginError','Waking up the server — this can take up to a minute on the free plan. Hold on.'),4000);
+  try{U=await post('/api/login',{username,password});clearTimeout(slow);enterApp()}
+  catch(e){clearTimeout(slow);showError('loginError',e.message==='Request failed'?'Connection error. Is the server running?':e.message)}
 }
 function enterApp(){
   try{sessionStorage.setItem('shapeless_user',JSON.stringify(U))}catch(e){}
@@ -602,7 +603,7 @@ async function selfAssess(skillId,level){
 function loadProfile(){
   const roleLbl={member:'Team Member',leader:'Team Leader',head:'Department Head',company:'Company'}[U.role];
   let html='<div class="card"><div class="avatar">'+esc(U.name.split(' ').map(p=>p[0]).slice(0,2).join(''))+'</div><h2 class="profile-name">'+esc(U.name)+'</h2><p class="profile-meta">'+roleLbl+(U.team_name?' · '+U.team_name:'')+(U.department_name?' · '+U.department_name:'')+(U.company_name?' · '+U.company_name:'')+'</p></div>';
-  html+='<div class="card"><h3>Other tools</h3><p class="hint" style="margin-bottom:10px">Same login, same database.</p><a href="/tend" class="btn btn-secondary" style="margin-bottom:8px">Tend — values →</a><a href="/hub" class="btn btn-secondary">Shapeless Hub</a></div>';
+  html+='<div class="card"><h3>Other tools</h3><p class="hint" style="margin-bottom:10px">Same login, same database.</p><a href="{{TEND_URL}}" class="btn btn-secondary" style="margin-bottom:8px">Tend — values →</a><a href="{{HUB_URL}}" class="btn btn-secondary">Shapeless Hub</a></div>';
   html+='<div class="card"><h3>Security</h3><button class="btn btn-secondary" style="margin-top:8px" onclick="showChangePassword()">Change Password</button></div>';
   html+='<button class="btn btn-secondary" style="margin-top:8px" onclick="logout()">Sign Out</button>';
   document.getElementById('profileContent').innerHTML=html;

@@ -159,7 +159,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
   <div class="login-header">
     <h1>Tend</h1>
     <p>Pulse Check — 10 values that shape your team</p>
-    <p style="margin-top:8px;font-size:.8rem"><a href="/hub" style="color:var(--accent);text-decoration:none">← Shapeless Hub</a></p>
+    <p style="margin-top:8px;font-size:.8rem"><a href="{{HUB_URL}}" style="color:var(--accent);text-decoration:none">← Shapeless Hub</a></p>
   </div>
   <div class="card">
     <h2>Sign In</h2>
@@ -286,7 +286,7 @@ h1,h2,h3{font-family:'DM Serif Display',serif;font-weight:400}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script>
 let U = null, cycle = null, valores = [], pulseAnswers = [], currentQ = 0, dashTab = 'overview', hmDrillTeam = null, hmDrillDept = null;
-const API = '';
+const API = '{{API}}';
 
 function navigate(s) {
   document.querySelectorAll('.container').forEach(c => c.classList.add('hidden'));
@@ -905,7 +905,7 @@ async function loadProfile(){
     html+='</div>';
   }
   html+='<div class="card"><h3>Security</h3><button class="btn btn-secondary" style="margin-top:8px" onclick="showChangePassword()">Change Password</button></div>';
-  html+='<div class="card"><h3>Other tools</h3><p style="font-size:.85rem;color:var(--fg2);margin-bottom:10px">Same login, same database.</p><a href="/skills" class="btn btn-secondary" style="text-decoration:none;margin-bottom:8px">Skills Matrix →</a><a href="/hub" class="btn btn-secondary" style="text-decoration:none">Shapeless Hub</a></div>';
+  html+='<div class="card"><h3>Other tools</h3><p style="font-size:.85rem;color:var(--fg2);margin-bottom:10px">Same login, same database.</p><a href="{{SKILLS_URL}}" class="btn btn-secondary" style="text-decoration:none;margin-bottom:8px">Skills Matrix →</a><a href="{{HUB_URL}}" class="btn btn-secondary" style="text-decoration:none">Shapeless Hub</a></div>';
   html+='<button class="btn btn-secondary" style="margin-top:8px" onclick="logout()">Sign Out</button>';
   document.getElementById('profileContent').innerHTML=html;
 }
